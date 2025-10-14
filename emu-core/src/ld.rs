@@ -112,12 +112,12 @@ pub fn ld_mem_to_reg<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
         0x2A => {
             cpu.reg.a = cpu.mmu.read_byte(cpu.reg.hl());
             cpu.reg.set_hl(cpu.reg.hl() + 1);
-            return 3; // additional cycle for incrementing HL
+            return 2; // read from (HL), then increment happens in same cycles
         },
         0x3A => {
             cpu.reg.a = cpu.mmu.read_byte(cpu.reg.hl());
             cpu.reg.set_hl(cpu.reg.hl() - 1);
-            return 3; // additional cycle for decrementing HL
+            return 2; // read from (HL), then decrement happens in same cycles
         },
 
         // loading mem(8-bit constant) in A

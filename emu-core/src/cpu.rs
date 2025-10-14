@@ -33,9 +33,7 @@ impl<M: MemoryBus> Cpu<M> {
         }
 
         let cycles = self.execute();
-        for _ in 0..cycles {
-            self.mmu.tick(); // TODO: maybe handle the fact that memory and cpu have different speeds
-        }
+        self.mmu.tick(cycles);
 
         // Prefetch next opcode
         self.prefetched = self.read_byte();

@@ -1,3 +1,5 @@
+use core::num;
+
 const RAM_SIZE: usize = 8192; 
 
 pub trait MemoryBus {
@@ -5,7 +7,7 @@ pub trait MemoryBus {
     fn write_byte(&mut self, addr: u16, val: u8);
     fn read_word(&self, addr: u16) -> u16;
     fn write_word(&mut self, addr: u16, val: u16);
-    fn tick(&mut self);
+    fn tick(&mut self, num_cycles: u8);
 }
 
 pub struct Mmu {
@@ -41,7 +43,7 @@ impl MemoryBus for Mmu {
         self.write_byte(addr+1, lsbs);
     }
 
-    fn tick(&mut self) {
+    fn tick(&mut self, num_cycles: u8) {
         // No-op for now
     }
 }
