@@ -1,62 +1,61 @@
 use std::panic;
 
 use crate::memory::MemoryBus;
-    use crate::registers::Registers;
 use crate::cpu::Cpu;
 
-pub fn ld_reg_to_reg(registers: &mut Registers, opcode: u8) -> u8 {
+pub fn ld_reg_to_reg<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
     match opcode {
         0x40 => (), // Nothing to do (LD B B)
-        0x41 => registers.b = registers.c,
-        0x42 => registers.b = registers.d,
-        0x43 => registers.b = registers.e,
-        0x44 => registers.b = registers.h,
-        0x45 => registers.b = registers.l,
-        0x47 => registers.b = registers.a,
-        0x48 => registers.c = registers.b,
+        0x41 => cpu.reg.b = cpu.reg.c,
+        0x42 => cpu.reg.b = cpu.reg.d,
+        0x43 => cpu.reg.b = cpu.reg.e,
+        0x44 => cpu.reg.b = cpu.reg.h,
+        0x45 => cpu.reg.b = cpu.reg.l,
+        0x47 => cpu.reg.b = cpu.reg.a,
+        0x48 => cpu.reg.c = cpu.reg.b,
         0x49 => (), // Nothing to do (LD C C)
-        0x4A => registers.c = registers.d,
-        0x4B => registers.c = registers.e,
-        0x4C => registers.c = registers.h,
-        0x4D => registers.c = registers.l,
-        0x4F => registers.c = registers.a,
+        0x4A => cpu.reg.c = cpu.reg.d,
+        0x4B => cpu.reg.c = cpu.reg.e,
+        0x4C => cpu.reg.c = cpu.reg.h,
+        0x4D => cpu.reg.c = cpu.reg.l,
+        0x4F => cpu.reg.c = cpu.reg.a,
         
-        0x50 => registers.d = registers.b,
-        0x51 => registers.d = registers.c,
+        0x50 => cpu.reg.d = cpu.reg.b,
+        0x51 => cpu.reg.d = cpu.reg.c,
         0x52 => (),
-        0x53 => registers.d = registers.e,
-        0x54 => registers.d = registers.h,
-        0x55 => registers.d = registers.l,
-        0x57 => registers.d = registers.a,
-        0x58 => registers.e = registers.b,
-        0x59 => registers.e = registers.c,
-        0x5A => registers.e = registers.d,
+        0x53 => cpu.reg.d = cpu.reg.e,
+        0x54 => cpu.reg.d = cpu.reg.h,
+        0x55 => cpu.reg.d = cpu.reg.l,
+        0x57 => cpu.reg.d = cpu.reg.a,
+        0x58 => cpu.reg.e = cpu.reg.b,
+        0x59 => cpu.reg.e = cpu.reg.c,
+        0x5A => cpu.reg.e = cpu.reg.d,
         0x5B => (), // Nothing to do (LD E E)
-        0x5C => registers.e = registers.h,
-        0x5D => registers.e = registers.l,
-        0x5F => registers.e = registers.a,
+        0x5C => cpu.reg.e = cpu.reg.h,
+        0x5D => cpu.reg.e = cpu.reg.l,
+        0x5F => cpu.reg.e = cpu.reg.a,
 
-        0x60 => registers.h = registers.b,
-        0x61 => registers.h = registers.c,
-        0x62 => registers.h = registers.d,
-        0x63 => registers.h = registers.e,
+        0x60 => cpu.reg.h = cpu.reg.b,
+        0x61 => cpu.reg.h = cpu.reg.c,
+        0x62 => cpu.reg.h = cpu.reg.d,
+        0x63 => cpu.reg.h = cpu.reg.e,
         0x64 => (), // Nothing to do (LD H H)
-        0x65 => registers.h = registers.l,
-        0x67 => registers.h = registers.a,
-        0x68 => registers.l = registers.b,
-        0x69 => registers.l = registers.c,
-        0x6A => registers.l = registers.d,
-        0x6B => registers.l = registers.e,
-        0x6C => registers.l = registers.h,
+        0x65 => cpu.reg.h = cpu.reg.l,
+        0x67 => cpu.reg.h = cpu.reg.a,
+        0x68 => cpu.reg.l = cpu.reg.b,
+        0x69 => cpu.reg.l = cpu.reg.c,
+        0x6A => cpu.reg.l = cpu.reg.d,
+        0x6B => cpu.reg.l = cpu.reg.e,
+        0x6C => cpu.reg.l = cpu.reg.h,
         0x6D => (), // Nothing to do (LD L L)
-        0x6F => registers.l = registers.a,
+        0x6F => cpu.reg.l = cpu.reg.a,
 
-        0x78 => registers.a = registers.b,
-        0x79 => registers.a = registers.c,
-        0x7A => registers.a = registers.d,
-        0x7B => registers.a = registers.e,
-        0x7C => registers.a = registers.h,
-        0x7D => registers.a = registers.l,
+        0x78 => cpu.reg.a = cpu.reg.b,
+        0x79 => cpu.reg.a = cpu.reg.c,
+        0x7A => cpu.reg.a = cpu.reg.d,
+        0x7B => cpu.reg.a = cpu.reg.e,
+        0x7C => cpu.reg.a = cpu.reg.h,
+        0x7D => cpu.reg.a = cpu.reg.l,
         0x7F => (), // Nothing to do (LD A A)
 
         _ => panic!("Not a register to register load instruction: 0x{:02X}", opcode),
@@ -64,7 +63,7 @@ pub fn ld_reg_to_reg(registers: &mut Registers, opcode: u8) -> u8 {
     1
 }
 
-pub fn ld_cst_to_reg(cpu: &mut Cpu, opcode: u8) -> u8 {
+pub fn ld_cst_to_reg<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
     let constant = cpu.read_byte();
     match opcode {
         0x06 => cpu.reg.b = constant,
@@ -79,7 +78,7 @@ pub fn ld_cst_to_reg(cpu: &mut Cpu, opcode: u8) -> u8 {
     2
 }
 
-pub fn ld_mem_to_reg(cpu: &mut Cpu, opcode: u8) -> u8 {
+pub fn ld_mem_to_reg<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
     match opcode {
         // load (hl) to all registers
         0x46 => cpu.reg.b = cpu.mmu.read_byte(cpu.reg.hl()),
@@ -111,7 +110,7 @@ pub fn ld_mem_to_reg(cpu: &mut Cpu, opcode: u8) -> u8 {
     2
 }
 
-pub fn ld_reg_to_mem(cpu: &mut Cpu, opcode: u8) -> u8 {
+pub fn ld_reg_to_mem<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
     match opcode {
         // load registers into memory(hl)
         0x70 => cpu.mmu.write_byte(cpu.reg.hl(), cpu.reg.b),
@@ -150,7 +149,7 @@ pub fn ld_reg_to_mem(cpu: &mut Cpu, opcode: u8) -> u8 {
     2
 }
 
-pub fn ld_cst_to_mem(cpu: &mut Cpu) -> u8 {
+pub fn ld_cst_to_mem<M: MemoryBus>(cpu: &mut Cpu<M>) -> u8 {
     let cst = cpu.read_byte();
     cpu.mmu.write_byte(cpu.reg.hl(), cst);
     3

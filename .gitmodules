@@ -1,0 +1,3 @@
+[submodule "emu-core/tests/data"]
+	path = emu-core/tests/data
+	url = https://github.com/adtennant/GameboyCPUTests.git

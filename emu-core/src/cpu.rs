@@ -1,31 +1,39 @@
-use crate::registers::Registers;
-use crate::memory::{Mmu, MemoryBus};
 use crate::ld;
+use crate::memory::MemoryBus;
+use crate::registers::Registers;
 
-pub struct Cpu {
+pub struct Cpu<M: MemoryBus> {
     pub reg: Registers,
     halted: bool,
     ime: bool,
     setei: u32,
     setdi: u32,
-    pub mmu: Mmu,
+    pub mmu: M,
 }
 
-impl Cpu {
-    pub fn new() -> Self {
+impl<M: MemoryBus> Cpu<M> {
+    pub fn new(mmu: M) -> Self {
         Self {
             reg: Registers::new(),
             halted: false,
             ime: false, // TODO: check bootup value
-            setei: 0, // same
-            setdi: 0, // same
-            mmu: Mmu::new(),
+            setei: 0,   // same
+            setdi: 0,   // same
+            mmu,
         }
     }
 
     pub fn tick(&mut self) {
-        // TODO: update everything that needs to be
-        unimplemented!();
+        // TODO: update timers and handle interrupts
+
+        if self.halted {
+            return;
+        }
+
+        let cycles = self.execute();
+        for _ in 0..cycles {
+            self.mmu.tick(); // TODO: maybe handle the fact that memory and cpu have different speeds
+        }
     }
 
     pub fn read_byte(&mut self) -> u8 {
@@ -48,39 +56,38 @@ impl Cpu {
         let low = opcode & 0x0F;
         match (high, low) {
             (0, 0) => 1, // NOP
-            
+
             // -- 8-bit loads
             // register <- constant
             (0x0..=0x2, 0x6) => ld::ld_cst_to_reg(self, opcode),
             (0x0..=0x3, 0xE) => ld::ld_cst_to_reg(self, opcode),
 
             // register <- register
-            (0x4..=0x6, 0x0..=0x5) => ld::ld_reg_to_reg(&mut self.reg, opcode),
-            (0x4..=0x6, 0x7..=0xD) => ld::ld_reg_to_reg(&mut self.reg, opcode),
-            (0x7, 0x8..=0xD)       => ld::ld_reg_to_reg(&mut self.reg, opcode),
-            (0x4..=0x7, 0xF)       => ld::ld_reg_to_reg(&mut self.reg, opcode),
-
+            (0x4..=0x6, 0x0..=0x5) => ld::ld_reg_to_reg(self, opcode),
+            (0x4..=0x6, 0x7..=0xD) => ld::ld_reg_to_reg(self, opcode),
+            (0x7, 0x8..=0xD) => ld::ld_reg_to_reg(self, opcode),
+            (0x4..=0x7, 0xF) => ld::ld_reg_to_reg(self, opcode),
 
             // register <- memory
             (0x4..=0x6, 0x6) => ld::ld_mem_to_reg(self, opcode),
             (0x4..=0x7, 0xE) => ld::ld_mem_to_reg(self, opcode),
-            (0xF, 0x0)       => ld::ld_mem_to_reg(self, opcode),
-            (0xF, 0x2)       => ld::ld_mem_to_reg(self, opcode),
-            (0xF, 0xA)       => ld::ld_mem_to_reg(self, opcode),
+            (0xF, 0x0) => ld::ld_mem_to_reg(self, opcode),
+            (0xF, 0x2) => ld::ld_mem_to_reg(self, opcode),
+            (0xF, 0xA) => ld::ld_mem_to_reg(self, opcode),
 
             // -- 16-bit loads
             // memory <- register
             (0x0..=0x3, 0x2) => ld::ld_reg_to_mem(self, opcode),
             (0x7, 0x0..=0x5) => ld::ld_reg_to_mem(self, opcode),
-            (0x7, 0x7)       => ld::ld_reg_to_mem(self, opcode),
-            (0xE, 0x0)       => ld::ld_reg_to_mem(self, opcode),   
-            (0xE, 0x2)       => ld::ld_reg_to_mem(self, opcode),   
-            (0xE, 0xA)       => ld::ld_reg_to_mem(self, opcode),   
+            (0x7, 0x7) => ld::ld_reg_to_mem(self, opcode),
+            (0xE, 0x0) => ld::ld_reg_to_mem(self, opcode),
+            (0xE, 0x2) => ld::ld_reg_to_mem(self, opcode),
+            (0xE, 0xA) => ld::ld_reg_to_mem(self, opcode),
 
             // memory <- constant
             (0x3, 0x6) => ld::ld_cst_to_mem(self),
-            
-            // -- 8-bit alu 
+
+            // -- 8-bit alu
 
             // -- 16-bit alu
 

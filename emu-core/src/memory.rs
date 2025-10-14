@@ -1,12 +1,11 @@
 const RAM_SIZE: usize = 8192; 
 
-// TODO: remove trait if not necessary (if CPU hold an instance of Mmu directly instead of
-// something more generic like Box<dyn MemoryBus>)
 pub trait MemoryBus {
     fn read_byte(&self, addr: u16) -> u8;
     fn write_byte(&mut self, addr: u16, val: u8);
     fn read_word(&self, addr: u16) -> u16;
     fn write_word(&mut self, addr: u16, val: u16);
+    fn tick(&mut self);
 }
 
 pub struct Mmu {
@@ -40,5 +39,9 @@ impl MemoryBus for Mmu {
 
         self.write_byte(addr, msbs);
         self.write_byte(addr+1, lsbs);
+    }
+
+    fn tick(&mut self) {
+        // No-op for now
     }
 }
