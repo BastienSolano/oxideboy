@@ -79,6 +79,7 @@ impl<M: MemoryBus> Cpu<M> {
             // register <- memory
             (0x4..=0x6, 0x6) => ld::ld_mem_to_reg(self, opcode),
             (0x4..=0x7, 0xE) => ld::ld_mem_to_reg(self, opcode),
+            (0x0..=0x3, 0xA) => ld::ld_mem_to_reg(self, opcode),
             (0xF, 0x0) => ld::ld_mem_to_reg(self, opcode),
             (0xF, 0x2) => ld::ld_mem_to_reg(self, opcode),
             (0xF, 0xA) => ld::ld_mem_to_reg(self, opcode),

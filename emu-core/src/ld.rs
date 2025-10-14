@@ -100,7 +100,21 @@ pub fn ld_mem_to_reg<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
         0x5E => cpu.reg.e = cpu.mmu.read_byte(cpu.reg.hl()),
         0x6E => cpu.reg.l = cpu.mmu.read_byte(cpu.reg.hl()),
         0x7E => cpu.reg.a = cpu.mmu.read_byte(cpu.reg.hl()),
-        
+
+        // loading mem(16-bit registers) in A
+        0x0A => cpu.reg.a = cpu.mmu.read_byte(cpu.reg.bc()),
+        0x1A => cpu.reg.a = cpu.mmu.read_byte(cpu.reg.de()),
+        0x2A => {
+            cpu.reg.a = cpu.mmu.read_byte(cpu.reg.hl());
+            cpu.reg.set_hl(cpu.reg.hl() + 1);
+            return 3; // additional cycle for incrementing HL
+        },
+        0x3A => {
+            cpu.reg.a = cpu.mmu.read_byte(cpu.reg.hl());
+            cpu.reg.set_hl(cpu.reg.hl() - 1);
+            return 3; // additional cycle for decrementing HL
+        },
+
         // loading mem(8-bit constant) in A
         0xF0 => {
             let cst = cpu.read_byte();
