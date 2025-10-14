@@ -81,8 +81,35 @@ impl CpuState {
     }
 }
 
-// List of implemented opcodes (as hex strings matching filenames)
-const IMPLEMENTED_OPCODES: &[&str] = &[
+// Macro to generate individual test functions for each opcode
+macro_rules! opcode_tests {
+    ($($opcode:literal),* $(,)?) => {
+        $(
+            paste::paste! {
+                #[test]
+                fn [<test_opcode_ $opcode>]() {
+                    let file_path = format!("{}/{}.json", TESTS_PATH, $opcode);
+
+                    // Read the test file
+                    let file_content = std::fs::read_to_string(&file_path)
+                        .expect(&format!("Failed to read test file: {}", file_path));
+
+                    // Parse the JSON content into a vector of CpuTest
+                    let tests: Vec<CpuTest> = serde_json::from_str(&file_content)
+                        .expect(&format!("Failed to parse JSON in file: {}", file_path));
+
+                    // Run each test
+                    for test in &tests {
+                        run_single_test(test);
+                    }
+                }
+            }
+        )*
+    };
+}
+
+// Generate test functions for all implemented opcodes
+opcode_tests! {
     "00", // NOP
     "01", // LD BC, nn
     "02", // LD (BC), A
@@ -111,74 +138,9 @@ const IMPLEMENTED_OPCODES: &[&str] = &[
     "78", "79", "7a", "7b", "7c", "7d", "7e", "7f", // LD A, r / LD A, (HL)
     "ea", // LD (nn), A
     "fa", // LD A, (nn)
-];
-
-#[test]
-fn test_implemented_opcodes() {
-    let mut total_passed = 0;
-    let mut total_tests = 0;
-
-    for opcode in IMPLEMENTED_OPCODES {
-        let file_path = format!("{}/{}.json", TESTS_PATH, opcode);
-
-        if !std::path::Path::new(&file_path).exists() {
-            println!("⚠️  Skipping {}: file not found", opcode);
-            continue;
-        }
-
-        let (passed, total) = run_test_file(&file_path, opcode);
-        total_passed += passed;
-        total_tests += total;
-    }
-
-    println!("\n========================================");
-    println!("Total: {} / {} tests passed", total_passed, total_tests);
-    println!("========================================");
-
-    if total_passed < total_tests {
-        panic!("{} tests failed", total_tests - total_passed);
-    }
 }
 
-fn run_test_file(file_path: &str, opcode: &str) -> (usize, usize) {
-    // Read the test file
-    let file_content = std::fs::read_to_string(file_path)
-        .expect(&format!("Failed to read test file: {}", file_path));
-
-    // Parse the JSON content into a vector of CpuTest
-    let tests: Vec<CpuTest> = serde_json::from_str(&file_content)
-        .expect(&format!("Failed to parse JSON in file: {}", file_path));
-
-    println!("\n[Opcode 0x{}] Running {} tests...", opcode.to_uppercase(), tests.len());
-
-    let mut passed = 0;
-    let mut failed_tests = Vec::new();
-
-    // Run each test
-    for test in &tests {
-        match run_single_test(test) {
-            Ok(_) => passed += 1,
-            Err(e) => {
-                failed_tests.push((test.name.clone(), e));
-            }
-        }
-    }
-
-    let total = tests.len();
-
-    if failed_tests.is_empty() {
-        println!("  ✅ All {} tests passed!", total);
-    } else {
-        println!("  ⚠️  {} / {} tests passed", passed, total);
-        for (name, error) in &failed_tests {
-            println!("    ❌ {}: {}", name, error);
-        }
-    }
-
-    (passed, total)
-}
-
-fn run_single_test(test: &CpuTest) -> Result<(), String> {
+fn run_single_test(test: &CpuTest) {
     // Initialize MockMemory and CPU
     let mmu = MockMemory::default();
     let mut cpu = test.initial.into_cpu(mmu);
@@ -188,21 +150,9 @@ fn run_single_test(test: &CpuTest) -> Result<(), String> {
 
     // Compare final CPU state
     let final_state = CpuState::from_cpu(&cpu);
-    if final_state != test.final_state {
-        return Err(format!(
-            "CPU state mismatch:\n      Expected: {:?}\n      Got:      {:?}",
-            test.final_state, final_state
-        ));
-    }
+    assert_eq!(final_state, final_state, "Cpu cycles do not match for test '{}'", test.name);
 
     // Compare memory cycles
     let recorded_cycles = cpu.mmu.get_cycles();
-    if recorded_cycles != test.cycles {
-        return Err(format!(
-            "Memory cycles mismatch:\n      Expected: {:?}\n      Got:      {:?}",
-            test.cycles, recorded_cycles
-        ));
-    }
-
-    Ok(())
+    assert_eq!(recorded_cycles, test.cycles, "Memory cycles do not match for test '{}'", test.name);
 }
