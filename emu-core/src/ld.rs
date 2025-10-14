@@ -78,6 +78,18 @@ pub fn ld_cst_to_reg<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
     2
 }
 
+pub fn ld_cst16_to_reg<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
+    let constant: u16 = cpu.read_word();
+    match opcode {
+        0x01 => cpu.reg.set_bc(constant),
+        0x11 => cpu.reg.set_de(constant),
+        0x21 => cpu.reg.set_hl(constant),
+        0x31 => cpu.reg.sp = constant,
+        _ => panic!("Not a constant to 16-bit register load instruction: 0x{:02X}", opcode),
+    }
+    3
+}
+
 pub fn ld_mem_to_reg<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
     match opcode {
         // load (hl) to all registers

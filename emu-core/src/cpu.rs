@@ -42,9 +42,11 @@ impl<M: MemoryBus> Cpu<M> {
     }
 
     pub fn read_byte(&mut self) -> u8 {
-        let val = self.prefetched;
-        self.prefetched = self.mmu.read_byte(self.reg.pc);
+        // At this point, the next instruction is not yet prefetched
+        // so self.prefetched contains the current instruction
+        let val = self.mmu.read_byte(self.reg.pc);
         self.reg.pc += 1;
+
         val
     }
 
@@ -82,6 +84,9 @@ impl<M: MemoryBus> Cpu<M> {
             (0xF, 0xA) => ld::ld_mem_to_reg(self, opcode),
 
             // -- 16-bit loads
+            // 16-bit register <- constant
+            (0x0..=0x03, 0x1) => ld::ld_cst16_to_reg(self, opcode),
+
             // memory <- register
             (0x0..=0x3, 0x2) => ld::ld_reg_to_mem(self, opcode),
             (0x7, 0x0..=0x5) => ld::ld_reg_to_mem(self, opcode),
