@@ -8,6 +8,7 @@ pub struct Cpu<M: MemoryBus> {
     ime: bool,
     setei: u32,
     setdi: u32,
+    pub prefetched: u8,
     pub mmu: M,
 }
 
@@ -19,6 +20,7 @@ impl<M: MemoryBus> Cpu<M> {
             ime: false, // TODO: check bootup value
             setei: 0,   // same
             setdi: 0,   // same
+            prefetched: 0,
             mmu,
         }
     }
@@ -34,24 +36,28 @@ impl<M: MemoryBus> Cpu<M> {
         for _ in 0..cycles {
             self.mmu.tick(); // TODO: maybe handle the fact that memory and cpu have different speeds
         }
+
+        // Prefetch next opcode
+        self.prefetched = self.read_byte();
     }
 
     pub fn read_byte(&mut self) -> u8 {
-        let val = self.mmu.read_byte(self.reg.pc);
+        let val = self.prefetched;
+        self.prefetched = self.mmu.read_byte(self.reg.pc);
         self.reg.pc += 1;
         val
     }
 
     pub fn read_word(&mut self) -> u16 {
-        let val = self.mmu.read_word(self.reg.pc);
-        self.reg.pc += 2;
-        val
+        let low = self.read_byte() as u16;
+        let high = self.read_byte() as u16;
+        (high << 8) | low
     }
 
     /// Executes the instructions at mem[pc].
     /// Returns the number of cycles
     fn execute(&mut self) -> u8 {
-        let opcode = self.read_byte();
+        let opcode = self.prefetched;
         let high = (opcode & 0xF0) >> 4;
         let low = opcode & 0x0F;
         match (high, low) {

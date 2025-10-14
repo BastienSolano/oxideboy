@@ -70,6 +70,10 @@ impl CpuState {
         for (addr, val) in &self.ram {
             cpu.mmu.write_byte(*addr, *val);
         }
+
+        // Loading the prefetched opcode
+        cpu.prefetched = cpu.mmu.read_byte(cpu.reg.pc);
+
         // Clear any cycles recorded during setup
         cpu.mmu.clear_cycles();
 
