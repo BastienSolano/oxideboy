@@ -58,6 +58,11 @@ pub fn ld_reg_to_reg<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
         0x7D => cpu.reg.a = cpu.reg.l,
         0x7F => (), // Nothing to do (LD A A)
 
+        0xF9 => {
+            cpu.reg.sp = cpu.reg.hl();
+            return 2; // extra cycle for 16-bit transfer
+        }
+
         _ => panic!("Not a register to register load instruction: 0x{:02X}", opcode),
     }
     1
@@ -169,6 +174,12 @@ pub fn ld_reg_to_mem<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
             cpu.mmu.write_byte(cst, cpu.reg.a);
             return 4;
         },
+        0x08 => {
+            let cst: u16 = cpu.read_word();
+            cpu.mmu.write_byte(cst, (cpu.reg.sp & 0xFF) as u8);
+            cpu.mmu.write_byte(cst+1, (cpu.reg.sp >> 8) as u8);
+            return 5;
+        }
         
         _ => panic!("Not a register to memory instruction; 0x{:02X}", opcode),
     }

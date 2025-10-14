@@ -138,6 +138,8 @@ opcode_tests! {
     "78", "79", "7a", "7b", "7c", "7d", "7e", "7f", // LD A, r / LD A, (HL)
     "ea", // LD (nn), A
     "fa", // LD A, (nn)
+    "08", // LD (nn), SP
+    "f9", // LD SP, HL
 }
 
 fn run_single_test(test: &CpuTest) {

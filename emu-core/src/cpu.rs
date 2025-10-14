@@ -85,6 +85,9 @@ impl<M: MemoryBus> Cpu<M> {
             (0xF, 0xA) => ld::ld_mem_to_reg(self, opcode),
 
             // -- 16-bit loads
+            // register <- register
+            (0xF, 0x9) => ld::ld_reg_to_reg(self, opcode),
+
             // 16-bit register <- constant
             (0x0..=0x03, 0x1) => ld::ld_cst16_to_reg(self, opcode),
 
@@ -95,6 +98,7 @@ impl<M: MemoryBus> Cpu<M> {
             (0xE, 0x0) => ld::ld_reg_to_mem(self, opcode),
             (0xE, 0x2) => ld::ld_reg_to_mem(self, opcode),
             (0xE, 0xA) => ld::ld_reg_to_mem(self, opcode),
+            (0x0, 0x8) => ld::ld_reg_to_mem(self, opcode),
 
             // memory <- constant
             (0x3, 0x6) => ld::ld_cst_to_mem(self),
