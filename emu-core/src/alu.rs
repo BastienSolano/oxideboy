@@ -164,21 +164,18 @@ pub fn add<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
         },
         0xe8 => {
             // ADD SP, s8
-            let cst = cpu.read_byte() as i8 as i16; // casting to a signed value using 2's complement
+            // Flags are ALWAYS calculated by treating the offset as unsigned
+            // and adding it to the lower byte of SP, regardless of sign
+            let offset_byte = cpu.read_byte();
+            let sp_lower = (cpu.reg.sp & 0x00FF) as u8;
 
-            if cst >= 0 {
-                let sp_lower = (cpu.reg.sp & 0x00FF) as u8;
-                let cst_lower = (cst as u16 & 0x00FF) as u8;
-                cpu.reg.set_flag(CpuFlag::H, add8_needs_half_carry(sp_lower, cst_lower));
-                cpu.reg.set_flag(CpuFlag::C, add8_needs_carry(sp_lower, cst_lower));
-                cpu.reg.sp = cpu.reg.sp.wrapping_add(cst as u16);
-            } else {
-                let sp_lower = (cpu.reg.sp & 0x00FF) as u8;
-                let cst_lower = ((-cst) as u16 & 0x00FF) as u8;
-                cpu.reg.set_flag(CpuFlag::H, sub8_needs_half_carry(sp_lower, cst_lower));
-                cpu.reg.set_flag(CpuFlag::C, sub8_needs_carry(sp_lower, cst_lower));
-                cpu.reg.sp = cpu.reg.sp.wrapping_sub((-cst) as u16);
-            }
+            // Calculate flags using unsigned addition on lower byte
+            cpu.reg.set_flag(CpuFlag::H, add8_needs_half_carry(sp_lower, offset_byte));
+            cpu.reg.set_flag(CpuFlag::C, add8_needs_carry(sp_lower, offset_byte));
+
+            // Perform the actual 16-bit operation with signed offset
+            let signed_offset = offset_byte as i8 as i16;
+            cpu.reg.sp = (cpu.reg.sp as i16).wrapping_add(signed_offset) as u16;
 
             cpu.reg.set_flag(CpuFlag::Z, false);
             cpu.reg.set_flag(CpuFlag::N, false);

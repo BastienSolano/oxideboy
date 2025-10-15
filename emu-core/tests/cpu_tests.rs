@@ -177,7 +177,7 @@ fn run_single_test(test: &CpuTest) {
 
     // Compare final CPU state
     let final_state = CpuState::from_cpu(&cpu);
-    assert_eq!(final_state, final_state, "Cpu cycles do not match for test '{}'", test.name);
+    assert_eq!(final_state, test.final_state, "Cpu cycles do not match for test '{}'", test.name);
 
     // Compare memory cycles
     let recorded_cycles = cpu.mmu.get_cycles();
