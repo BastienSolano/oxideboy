@@ -187,3 +187,50 @@ pub fn add<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
         _ => panic!("Not yet implemented ADD instruction: 0x{:02X}", opcode),
     }
 }
+
+macro_rules! sub_a_reg8 {
+    ($cpu:expr, $src_reg:ident) => {{
+        $cpu.reg.set_flag(CpuFlag::H, sub8_needs_half_carry($cpu.reg.a, $cpu.reg.$src_reg));
+        $cpu.reg.set_flag(CpuFlag::C, sub8_needs_carry($cpu.reg.a, $cpu.reg.$src_reg));
+
+        $cpu.reg.a = $cpu.reg.a.wrapping_sub($cpu.reg.$src_reg);
+
+        $cpu.reg.set_flag(CpuFlag::Z, $cpu.reg.a == 0);
+        $cpu.reg.set_flag(CpuFlag::N, true);
+
+        return 1;
+    }};
+}
+
+pub fn sub<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
+    match opcode {
+        0x90 => { sub_a_reg8!(cpu, b) },
+        0x91 => { sub_a_reg8!(cpu, c) },
+        0x92 => { sub_a_reg8!(cpu, d) },
+        0x93 => { sub_a_reg8!(cpu, e) },
+        0x94 => { sub_a_reg8!(cpu, h) },
+        0x95 => { sub_a_reg8!(cpu, l) },
+        0x97 => { sub_a_reg8!(cpu, a) },
+        0x96 => {
+            // ADD A, (HL)
+            let addr = cpu.reg.hl();
+            let val = cpu.mmu.read_byte(addr);
+            cpu.reg.set_flag(CpuFlag::H, sub8_needs_half_carry(cpu.reg.a, val));
+            cpu.reg.set_flag(CpuFlag::C, sub8_needs_carry(cpu.reg.a, val));
+            cpu.reg.a = cpu.reg.a.wrapping_sub(val);
+            cpu.reg.set_flag(CpuFlag::Z, cpu.reg.a == 0);
+            cpu.reg.set_flag(CpuFlag::N, true);
+            return 2;
+        },
+        0xd6 => {
+            let cst = cpu.read_byte();
+            cpu.reg.set_flag(CpuFlag::H, sub8_needs_half_carry(cpu.reg.a, cst));
+            cpu.reg.set_flag(CpuFlag::C, sub8_needs_carry(cpu.reg.a, cst));
+            cpu.reg.a = cpu.reg.a.wrapping_sub(cst);
+            cpu.reg.set_flag(CpuFlag::Z, cpu.reg.a == 0);
+            cpu.reg.set_flag(CpuFlag::N,true);
+            return 2;
+        },
+        _ => panic!("Not yet implemented ADD instruction: 0x{:02X}", opcode),
+    }
+}

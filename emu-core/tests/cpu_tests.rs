@@ -163,6 +163,8 @@ opcode_tests! {
     "c6", // ADD A, d8
     "e8", // ADD SP, s8
     "09", "19", "29", "39", // ADD HL, rr
+    "90", "91", "92", "93", "94", "95", "96", "97", // SUB A, r / SUB A, (HL)
+    "d6", // SUB A, d8
 }
 
 fn run_single_test(test: &CpuTest) {
