@@ -282,3 +282,55 @@ pub fn adc<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
         _ => panic!("Not an ADC instruction: 0x{:02X}", opcode),
     }
 }
+
+macro_rules! sub_carry_a_reg8 {
+    ($cpu:expr, $reg:ident) => {{
+        let carry = if $cpu.reg.get_flag(CpuFlag::C) { 1 } else { 0 };
+
+        $cpu.reg.set_flag(CpuFlag::H, sbc_needs_half_carry($cpu.reg.a, $cpu.reg.$reg, carry));
+        $cpu.reg.set_flag(CpuFlag::C, sbc_needs_carry($cpu.reg.a, $cpu.reg.$reg, carry));
+
+        $cpu.reg.a = $cpu.reg.a.wrapping_sub($cpu.reg.$reg).wrapping_sub(carry);
+
+        $cpu.reg.set_flag(CpuFlag::Z, $cpu.reg.a == 0);
+        $cpu.reg.set_flag(CpuFlag::N, true);
+
+        return 1;
+    }};
+}
+
+pub fn sbc<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
+    match opcode {
+        0x98 => { sub_carry_a_reg8!(cpu, b) },
+        0x99 => { sub_carry_a_reg8!(cpu, c) },
+        0x9A => { sub_carry_a_reg8!(cpu, d) },
+        0x9B => { sub_carry_a_reg8!(cpu, e) },
+        0x9C => { sub_carry_a_reg8!(cpu, h) },
+        0x9D => { sub_carry_a_reg8!(cpu, l) },
+        0x9F => { sub_carry_a_reg8!(cpu, a) },
+        0x9E => {
+            // SBC A, (HL)
+            let addr = cpu.reg.hl();
+            let val = cpu.mmu.read_byte(addr);
+            let carry = if cpu.reg.get_flag(CpuFlag::C) { 1 } else { 0 };
+            cpu.reg.set_flag(CpuFlag::H, sbc_needs_half_carry(cpu.reg.a, val, carry));
+            cpu.reg.set_flag(CpuFlag::C, sbc_needs_carry(cpu.reg.a, val, carry));
+            cpu.reg.a = cpu.reg.a.wrapping_sub(val).wrapping_sub(carry);
+            cpu.reg.set_flag(CpuFlag::Z, cpu.reg.a == 0);
+            cpu.reg.set_flag(CpuFlag::N, true);
+            return 2;
+        },
+        0xDE => {
+            // SBC A, d8
+            let cst = cpu.read_byte();
+            let carry = if cpu.reg.get_flag(CpuFlag::C) { 1 } else { 0 };
+            cpu.reg.set_flag(CpuFlag::H, sbc_needs_half_carry(cpu.reg.a, cst, carry));
+            cpu.reg.set_flag(CpuFlag::C, sbc_needs_carry(cpu.reg.a, cst, carry));
+            cpu.reg.a = cpu.reg.a.wrapping_sub(cst).wrapping_sub(carry);
+            cpu.reg.set_flag(CpuFlag::Z, cpu.reg.a == 0);
+            cpu.reg.set_flag(CpuFlag::N, true);
+            return 2;
+        },
+        _ => panic!("Not a SBC instruction: 0x{:02X}", opcode),
+    }
+}

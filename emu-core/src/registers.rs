@@ -156,3 +156,11 @@ pub fn adc_needs_carry(a: u8, b: u8, carry: u8) -> bool {
 pub fn adc_needs_half_carry(a: u8, b: u8, carry: u8) -> bool {
     ((a & 0x0F) + (b & 0x0F) + carry) > 0x0F
 }
+
+pub fn sbc_needs_carry(a: u8, b: u8, carry: u8) -> bool {
+    (a as u16) < (b as u16 + carry as u16)
+}
+
+pub fn sbc_needs_half_carry(a: u8, b: u8, carry: u8) -> bool {
+    ((a & 0x0F) < (b & 0x0F)) | ((a & 0x0F) < (b & 0x0F) + carry)
+}

@@ -125,6 +125,10 @@ impl<M: MemoryBus> Cpu<M> {
             (0x8, 0x8..=0xF) => alu::adc(self, opcode),
             (0xc, 0xE) => alu::adc(self, opcode),
 
+            // sbc
+            (0x9, 0x8..=0xF) => alu::sbc(self, opcode),
+            (0xd, 0xE) => alu::sbc(self, opcode),
+
             // -- 16-bit alu
             // increment 16-bit registers
             (0x0..=0x3, 0x3) => alu::incr(self, opcode),

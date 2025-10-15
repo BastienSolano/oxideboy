@@ -167,10 +167,12 @@ opcode_tests! {
     "d6", // SUB A, d8
 }
 
-// ADC instructions
+// ADC/SBC instructions
 opcode_tests! {
     "88", "89", "8a", "8b", "8c", "8d", "8e", "8f", // ADC A, r / ADC A, (HL)
     "ce", // ADC A, d8
+    "98", "99", "9a", "9b", "9c", "9d", "9e", "9f", // SBC A, r / SBC A, (HL)
+    "de", // SBC A, d8
 }
 
 fn run_single_test(test: &CpuTest) {
