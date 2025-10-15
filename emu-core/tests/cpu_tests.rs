@@ -175,6 +175,16 @@ opcode_tests! {
     "de", // SBC A, d8
 }
 
+// AND/OR/XOR instructions
+opcode_tests! {
+    "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", // AND A, r / AND A, (HL)
+    "e6", // AND A, d8
+    "b0", "b1", "b2", "b3", "b4", "b5", "b6", "b7", // OR A, r / OR A, (HL)
+    "f6", // OR A, d8
+    "a8", "a9", "aa", "ab", "ac", "ad", "ae", "af", // XOR A, r / XOR A, (HL)
+    "ee", // XOR A, d8
+}
+
 fn run_single_test(test: &CpuTest) {
     // Initialize MockMemory and CPU
     let mmu = MockMemory::default();

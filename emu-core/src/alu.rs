@@ -334,3 +334,135 @@ pub fn sbc<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
         _ => panic!("Not a SBC instruction: 0x{:02X}", opcode),
     }
 }
+
+macro_rules! and_a_reg8 {
+    ($cpu:expr, $reg:ident) => {{
+        $cpu.reg.a &= $cpu.reg.$reg;
+        $cpu.reg.set_flag(CpuFlag::Z, $cpu.reg.a == 0);
+        $cpu.reg.set_flag(CpuFlag::N, false);
+        $cpu.reg.set_flag(CpuFlag::H, true);
+        $cpu.reg.set_flag(CpuFlag::C, false);
+        return 1;
+    }};
+}
+
+pub fn and<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
+    match opcode {
+        0xA0 => { and_a_reg8!(cpu, b) },
+        0xA1 => { and_a_reg8!(cpu, c) },
+        0xA2 => { and_a_reg8!(cpu, d) },
+        0xA3 => { and_a_reg8!(cpu, e) },
+        0xA4 => { and_a_reg8!(cpu, h) },
+        0xA5 => { and_a_reg8!(cpu, l) },
+        0xA7 => { and_a_reg8!(cpu, a) },
+        0xA6 => {
+            // AND A, (HL)
+            let addr = cpu.reg.hl();
+            let val = cpu.mmu.read_byte(addr);
+            cpu.reg.a &= val;
+            cpu.reg.set_flag(CpuFlag::Z, cpu.reg.a == 0);
+            cpu.reg.set_flag(CpuFlag::N, false);
+            cpu.reg.set_flag(CpuFlag::H, true);
+            cpu.reg.set_flag(CpuFlag::C, false);
+            return 2;
+        },
+        0xE6 => {
+            let cst = cpu.read_byte();
+            cpu.reg.a &= cst;
+            cpu.reg.set_flag(CpuFlag::Z, cpu.reg.a == 0);
+            cpu.reg.set_flag(CpuFlag::N, false);
+            cpu.reg.set_flag(CpuFlag::H, true);
+            cpu.reg.set_flag(CpuFlag::C, false);
+            return 2;
+        },
+        _ => panic!("Not ADD instruction: 0x{:02X}", opcode),
+    }
+}
+
+macro_rules! or_a_reg8 {
+    ($cpu:expr, $reg:ident) => {{
+        $cpu.reg.a |= $cpu.reg.$reg;
+        $cpu.reg.set_flag(CpuFlag::Z, $cpu.reg.a == 0);
+        $cpu.reg.set_flag(CpuFlag::N, false);
+        $cpu.reg.set_flag(CpuFlag::H, false);
+        $cpu.reg.set_flag(CpuFlag::C, false);
+        return 1;
+    }};
+}
+
+pub fn or<M:MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
+    match opcode {
+        0xB0 => { or_a_reg8!(cpu, b) },
+        0xB1 => { or_a_reg8!(cpu, c) },
+        0xB2 => { or_a_reg8!(cpu, d) },
+        0xB3 => { or_a_reg8!(cpu, e) },
+        0xB4 => { or_a_reg8!(cpu, h) },
+        0xB5 => { or_a_reg8!(cpu, l) },
+        0xB7 => { or_a_reg8!(cpu, a) },
+        0xB6 => {
+            // OR A, (HL)
+            let addr = cpu.reg.hl();
+            let val = cpu.mmu.read_byte(addr);
+            cpu.reg.a |= val;
+            cpu.reg.set_flag(CpuFlag::Z, cpu.reg.a == 0);
+            cpu.reg.set_flag(CpuFlag::N, false);
+            cpu.reg.set_flag(CpuFlag::H, false);
+            cpu.reg.set_flag(CpuFlag::C, false);
+            return 2;
+        },
+        0xF6 => {
+            let cst = cpu.read_byte();
+            cpu.reg.a |= cst;
+            cpu.reg.set_flag(CpuFlag::Z, cpu.reg.a == 0);
+            cpu.reg.set_flag(CpuFlag::N, false);
+            cpu.reg.set_flag(CpuFlag::H, false);
+            cpu.reg.set_flag(CpuFlag::C, false);
+            return 2;
+        },
+        _ => panic!("Not OR instruction: 0x{:02X}", opcode),
+    }
+}
+
+macro_rules! xor_a_reg8 {
+    ($cpu:expr, $reg:ident) => {{
+        $cpu.reg.a ^= $cpu.reg.$reg;
+        $cpu.reg.set_flag(CpuFlag::Z, $cpu.reg.a == 0);
+        $cpu.reg.set_flag(CpuFlag::N, false);
+        $cpu.reg.set_flag(CpuFlag::H, false);
+        $cpu.reg.set_flag(CpuFlag::C, false);
+        return 1;
+    }};
+}
+
+pub fn xor<M:MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
+    match opcode {
+        0xA8 => { xor_a_reg8!(cpu, b) },
+        0xA9 => { xor_a_reg8!(cpu, c) },
+        0xAA => { xor_a_reg8!(cpu, d) },
+        0xAB => { xor_a_reg8!(cpu, e) },
+        0xAC => { xor_a_reg8!(cpu, h) },
+        0xAD => { xor_a_reg8!(cpu, l) },
+        0xAF => { xor_a_reg8!(cpu, a) },
+        0xAE => {
+            // XOR A, (HL)
+            let addr = cpu.reg.hl();
+            let val = cpu.mmu.read_byte(addr);
+            cpu.reg.a ^= val;
+            cpu.reg.set_flag(CpuFlag::Z, cpu.reg.a == 0);
+            cpu.reg.set_flag(CpuFlag::N, false);
+            cpu.reg.set_flag(CpuFlag::H, false);
+            cpu.reg.set_flag(CpuFlag::C, false);
+            return 2;
+        },
+        0xEE => {
+            let cst = cpu.read_byte();
+            cpu.reg.a ^= cst;
+            cpu.reg.set_flag(CpuFlag::Z, cpu.reg.a == 0);
+            cpu.reg.set_flag(CpuFlag::N, false);
+            cpu.reg.set_flag(CpuFlag::H, false);
+            cpu.reg.set_flag(CpuFlag::C, false);
+            return 2;
+        },
+        _ => panic!("Not OR instruction: 0x{:02X}", opcode),
+    }
+}
