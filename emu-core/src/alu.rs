@@ -181,7 +181,7 @@ pub fn add<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
             cpu.reg.set_flag(CpuFlag::N, false);
             return 4;
         },
-        _ => panic!("Not yet implemented ADD instruction: 0x{:02X}", opcode),
+        _ => panic!("Not ADD instruction: 0x{:02X}", opcode),
     }
 }
 
@@ -228,6 +228,57 @@ pub fn sub<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
             cpu.reg.set_flag(CpuFlag::N,true);
             return 2;
         },
-        _ => panic!("Not yet implemented ADD instruction: 0x{:02X}", opcode),
+        _ => panic!("Not a SUB instruction: 0x{:02X}", opcode),
+    }
+}
+
+macro_rules! add_carry_a_reg8 {
+    ($cpu:expr, $reg:ident) => {{
+        let carry = if $cpu.reg.get_flag(CpuFlag::C) { 1 } else { 0 };
+
+        $cpu.reg.set_flag(CpuFlag::H, adc_needs_half_carry($cpu.reg.a, $cpu.reg.$reg, carry));
+        $cpu.reg.set_flag(CpuFlag::C, adc_needs_carry($cpu.reg.a, $cpu.reg.$reg, carry));
+
+        $cpu.reg.a = $cpu.reg.a.wrapping_add($cpu.reg.$reg).wrapping_add(carry);
+
+        $cpu.reg.set_flag(CpuFlag::Z, $cpu.reg.a == 0);
+        $cpu.reg.set_flag(CpuFlag::N, false);
+
+        return 1;
+    }};
+}
+
+pub fn adc<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
+    match opcode {
+        0x88 => { add_carry_a_reg8!(cpu, b) },
+        0x89 => { add_carry_a_reg8!(cpu, c) },
+        0x8A => { add_carry_a_reg8!(cpu, d) },
+        0x8B => { add_carry_a_reg8!(cpu, e) },
+        0x8C => { add_carry_a_reg8!(cpu, h) },
+        0x8D => { add_carry_a_reg8!(cpu, l) },
+        0x8F => { add_carry_a_reg8!(cpu, a) },
+        0x8E => {
+            // ADC A, (HL)
+            let addr = cpu.reg.hl();
+            let val = cpu.mmu.read_byte(addr);
+            let carry = if cpu.reg.get_flag(CpuFlag::C) { 1 } else { 0 };
+            cpu.reg.set_flag(CpuFlag::H, adc_needs_half_carry(cpu.reg.a, val, carry));
+            cpu.reg.set_flag(CpuFlag::C, adc_needs_carry(cpu.reg.a, val, carry));
+            cpu.reg.a = cpu.reg.a.wrapping_add(val).wrapping_add(carry);
+            cpu.reg.set_flag(CpuFlag::Z, cpu.reg.a == 0);
+            cpu.reg.set_flag(CpuFlag::N, false);
+            return 2;
+        },
+        0xCE => {
+            let cst = cpu.read_byte();
+            let carry = if cpu.reg.get_flag(CpuFlag::C) { 1 } else { 0 };
+            cpu.reg.set_flag(CpuFlag::H, adc_needs_half_carry(cpu.reg.a, cst, carry));
+            cpu.reg.set_flag(CpuFlag::C, adc_needs_carry(cpu.reg.a, cst, carry));
+            cpu.reg.a = cpu.reg.a.wrapping_add(cst).wrapping_add(carry);
+            cpu.reg.set_flag(CpuFlag::Z, cpu.reg.a == 0);
+            cpu.reg.set_flag(CpuFlag::N, false);
+            return 2;
+        },
+        _ => panic!("Not an ADC instruction: 0x{:02X}", opcode),
     }
 }

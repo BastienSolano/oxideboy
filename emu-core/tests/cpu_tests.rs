@@ -167,6 +167,12 @@ opcode_tests! {
     "d6", // SUB A, d8
 }
 
+// ADC instructions
+opcode_tests! {
+    "88", "89", "8a", "8b", "8c", "8d", "8e", "8f", // ADC A, r / ADC A, (HL)
+    "ce", // ADC A, d8
+}
+
 fn run_single_test(test: &CpuTest) {
     // Initialize MockMemory and CPU
     let mmu = MockMemory::default();
