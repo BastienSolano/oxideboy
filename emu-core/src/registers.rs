@@ -86,6 +86,16 @@ impl Registers {
         self.l = (val & 0xFF) as u8;
     }
 
+    // next two methods are not really necessary since sp is public
+    // but useful to treat sp like any other 16-bit registers
+    pub fn sp(&self) -> u16 {
+        self.sp
+    }
+
+    pub fn set_sp(&mut self, val: u16) {
+        self.sp = val;
+    }
+
     pub fn clear_flags(&mut self) {
         self.f = 0;
     }
@@ -121,4 +131,20 @@ pub fn add8_needs_half_carry(a: u8, b: u8) -> bool {
 pub fn add16_needs_half_carry(a: u16, b: u16) -> bool {
     ((a & 0x0FFF) + (b & 0x0FFF)) > 0x0FFF
     // equivalent to: ((a & 0x0FFF) + (b & 0x0FFF)) & 0x1000 == 0x1000
+}
+
+pub fn sub8_needs_carry(a: u8, b: u8) -> bool {
+   a < b
+}
+
+pub fn sub16_needs_carry(a: u16, b: u16) -> bool {
+    a < b
+}
+
+pub fn sub8_needs_half_carry(a: u8, b: u8) -> bool {
+    (a & 0x0F) < (b & 0x0F)
+}
+
+pub fn sub16_needs_half_carry(a: u16, b: u16) -> bool {
+    (a & 0x0FFF) < (b & 0x0FFF)
 }

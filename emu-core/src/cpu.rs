@@ -1,4 +1,5 @@
 use crate::ld;
+use crate::alu;
 use crate::memory::MemoryBus;
 use crate::registers::Registers;
 
@@ -103,8 +104,22 @@ impl<M: MemoryBus> Cpu<M> {
             (0x3, 0x6) => ld::ld_cst_to_mem(self),
 
             // -- 8-bit alu
+            // increment 8-bit registers
+            (0x0..=0x2, 0x4) => alu::incr(self, opcode),
+            (0x0..=0x3, 0xC) => alu::incr(self, opcode),
+            // decrement 8-bit registers
+            (0x0..=0x2, 0x5) => alu::decr(self, opcode),
+            (0x0..=0x3, 0xD) => alu::decr(self, opcode),
 
             // -- 16-bit alu
+            // increment 16-bit registers
+            (0x0..=0x3, 0x3) => alu::incr(self, opcode),
+            // increment memory pointed by 16-bit registers
+            (0x3, 0x4) => alu::incr(self, opcode),
+            // decrement 16-bit registers
+            (0x0..=0x3, 0xB) => alu::decr(self, opcode),
+            // decrement memory pointed by 16-bit registers
+            (0x3, 0x5) => alu::decr(self, opcode),
 
             // -- jumps
 

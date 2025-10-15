@@ -108,7 +108,7 @@ macro_rules! opcode_tests {
     };
 }
 
-// Generate test functions for all implemented opcodes
+// LD instructions
 opcode_tests! {
     "00", // NOP
     "01", // LD BC, nn
@@ -145,6 +145,16 @@ opcode_tests! {
     "08", // LD (nn), SP
     "f8", // LD HL, SP+e8
     "f9", // LD SP, HL
+}
+
+// INC/DEC instructions
+opcode_tests! {
+    "04", "14", "24", "0c", "1c", "2c", "3c", // INC {B,D,H,C,E,L,A}
+    "03", "13", "23", "33", // INC {BC,DE,HL,SP}
+    "34", // INC (HL)
+    "05", "15", "25", "0d", "1d", "2d", "3d", // DEC {B,D,H,C,E,L,A}
+    "0b", "1b", "2b", "3b", // DEC {BC,DE,HL,SP}
+    "35", // DEC (HL)   
 }
 
 fn run_single_test(test: &CpuTest) {
