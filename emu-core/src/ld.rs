@@ -3,6 +3,8 @@ use std::panic;
 use crate::memory::MemoryBus;
 use crate::cpu::Cpu;
 
+use crate::registers::*;
+
 pub fn ld_reg_to_reg<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
     match opcode {
         0x40 => (), // Nothing to do (LD B B)
@@ -58,6 +60,18 @@ pub fn ld_reg_to_reg<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
         0x7D => cpu.reg.a = cpu.reg.l,
         0x7F => (), // Nothing to do (LD A A)
 
+        0xF8 => { // LD HL, SP+e8
+            let cst = cpu.read_byte() as i8;
+            let val = cpu.reg.sp.wrapping_add(cst as u16);
+            cpu.reg.set_hl(val);
+            
+            // Setting flags: Z=0, N=0, H=half-carry, C=carry
+            cpu.reg.clear_flags();
+            cpu.reg.set_flag(CpuFlag::C, add16_needs_carry(cpu.reg.sp, cst as u16));
+            cpu.reg.set_flag(CpuFlag::H, add16_needs_half_carry(cpu.reg.sp, cst as u16));
+
+            return 3;
+        }
         0xF9 => {
             cpu.reg.sp = cpu.reg.hl();
             return 2; // extra cycle for 16-bit transfer
@@ -120,15 +134,15 @@ pub fn ld_mem_to_reg<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
             return 2; // read from (HL), then decrement happens in same cycles
         },
 
-        // loading mem(8-bit constant) in A
+        // loading mem(0xFF00 + 8-bit constant) in A (LDH A,(a8))
         0xF0 => {
             let cst = cpu.read_byte();
-            cpu.reg.a = cpu.mmu.read_byte(cst as u16);
+            cpu.reg.a = cpu.mmu.read_byte(0xFF00 + cst as u16);
             return 3; // additional tick for reading the constant
         },
 
-        // loading mem(C) in A
-        0xF2 => cpu.reg.a = cpu.mmu.read_byte(cpu.reg.c as u16),
+        // loading mem(0xFF00 + C) in A (LD A,(C))
+        0xF2 => cpu.reg.a = cpu.mmu.read_byte(0xFF00 + cpu.reg.c as u16),
 
         // loading mem(16-bit constant) in A
         0xFA => {
@@ -163,12 +177,12 @@ pub fn ld_reg_to_mem<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
             cpu.reg.set_hl(cpu.reg.hl().wrapping_sub(1));
         },
 
-        0xE0 => {
+        0xE0 => { // LDH (a8),A
             let cst = cpu.read_byte();
-            cpu.mmu.write_byte(cst as u16, cpu.reg.a);
+            cpu.mmu.write_byte(0xFF00 + cst as u16, cpu.reg.a);
             return 3;
         },
-        0xE2 => cpu.mmu.write_byte(cpu.reg.c as u16, cpu.reg.a),
+        0xE2 => cpu.mmu.write_byte(0xFF00 + cpu.reg.c as u16, cpu.reg.a), // LD (C),A
         0xEA => {
             let cst = cpu.read_word();
             cpu.mmu.write_byte(cst, cpu.reg.a);

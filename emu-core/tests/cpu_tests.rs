@@ -136,9 +136,14 @@ opcode_tests! {
     "68", "69", "6a", "6b", "6c", "6d", "6e", "6f", // LD L, r / LD L, (HL)
     "70", "71", "72", "73", "74", "75", "77",       // LD (HL), r (skip 0x76 HALT)
     "78", "79", "7a", "7b", "7c", "7d", "7e", "7f", // LD A, r / LD A, (HL)
+    "e0", // LDH (a8), A
+    "e2", // LD (C), A
     "ea", // LD (nn), A
+    "f0", // LDH A, (a8)
+    "f2", // LD A, (C)
     "fa", // LD A, (nn)
     "08", // LD (nn), SP
+    "f8", // LD HL, SP+e8
     "f9", // LD SP, HL
 }
 
