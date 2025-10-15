@@ -157,6 +157,14 @@ opcode_tests! {
     "35", // DEC (HL)   
 }
 
+// ADD/SUB instructions
+opcode_tests! {
+    "80", "81", "82", "83", "84", "85", "86", "87", // ADD A, r / ADD A, (HL)
+    "c6", // ADD A, d8
+    "e8", // ADD SP, s8
+    "09", "19", "29", "39", // ADD HL, rr
+}
+
 fn run_single_test(test: &CpuTest) {
     // Initialize MockMemory and CPU
     let mmu = MockMemory::default();
