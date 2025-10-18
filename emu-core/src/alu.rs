@@ -466,3 +466,57 @@ pub fn xor<M:MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
         _ => panic!("Not OR instruction: 0x{:02X}", opcode),
     }
 }
+
+macro_rules!  cp_a_reg8 {
+    ($cpu:expr, $reg:ident) => {{
+        $cpu.reg.set_flag(CpuFlag::H, sub8_needs_half_carry($cpu.reg.a, $cpu.reg.$reg));
+        $cpu.reg.set_flag(CpuFlag::C, sub8_needs_carry($cpu.reg.a, $cpu.reg.$reg));
+
+        let result = $cpu.reg.a.wrapping_sub($cpu.reg.$reg);
+
+        $cpu.reg.set_flag(CpuFlag::Z, result == 0);
+        $cpu.reg.set_flag(CpuFlag::N, true);
+
+        return 1;
+    }};
+}
+
+pub fn cp<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
+    match opcode {
+        0xB8 => { cp_a_reg8!(cpu, b) },
+        0xB9 => { cp_a_reg8!(cpu, c) },
+        0xBA => { cp_a_reg8!(cpu, d) },
+        0xBB => { cp_a_reg8!(cpu, e) },
+        0xBC => { cp_a_reg8!(cpu, h) },
+        0xBD => { cp_a_reg8!(cpu, l) },
+        0xBF => { cp_a_reg8!(cpu, a) },
+        0xBE => {
+            let addr = cpu.reg.hl();
+            let val = cpu.mmu.read_byte(addr);
+
+            cpu.reg.set_flag(CpuFlag::H, sub8_needs_half_carry(cpu.reg.a, val));
+            cpu.reg.set_flag(CpuFlag::C, sub8_needs_carry(cpu.reg.a, val));
+
+            let result = cpu.reg.a.wrapping_sub(val);
+
+            cpu.reg.set_flag(CpuFlag::Z, result == 0);
+            cpu.reg.set_flag(CpuFlag::N, true);
+
+            return 2;
+        },
+        0xFE => {
+            let cst = cpu.read_byte();
+
+            cpu.reg.set_flag(CpuFlag::H, sub8_needs_half_carry(cpu.reg.a, cst));
+            cpu.reg.set_flag(CpuFlag::C, sub8_needs_carry(cpu.reg.a, cst));
+
+            let result = cpu.reg.a.wrapping_sub(cst);
+
+            cpu.reg.set_flag(CpuFlag::Z, result == 0);
+            cpu.reg.set_flag(CpuFlag::N, true);
+
+            return 2;
+        },
+        _ => panic!("Not a CP instruction: 0x{:02X}", opcode),
+    }
+}

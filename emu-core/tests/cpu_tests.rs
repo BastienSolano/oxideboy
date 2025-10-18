@@ -185,6 +185,12 @@ opcode_tests! {
     "ee", // XOR A, d8
 }
 
+// CP instructions
+opcode_tests! {
+    "b8", "b9", "ba", "bb", "bc", "bd", "be", "bf", // CP A, r / CP A, (HL)
+    "fe", // CP A, d8
+}
+
 fn run_single_test(test: &CpuTest) {
     // Initialize MockMemory and CPU
     let mmu = MockMemory::default();
