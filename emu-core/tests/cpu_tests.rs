@@ -191,6 +191,12 @@ opcode_tests! {
     "fe", // CP A, d8
 }
 
+// Push/Pop instructions
+opcode_tests! {
+    "c1", "d1", "e1", "f1", // POP BC, DE, HL, AF
+    "c5", "d5", "e5", "f5", // PUSH BC, DE, HL, AF
+}
+
 fn run_single_test(test: &CpuTest) {
     // Initialize MockMemory and CPU
     let mmu = MockMemory::default();

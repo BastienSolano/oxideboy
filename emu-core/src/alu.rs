@@ -18,6 +18,7 @@ macro_rules! incr_8bit_reg {
 
 macro_rules! incr_16bit_reg {
     ($cpu:expr, $myreg:ident, $mysetreg:ident) => {{
+        $cpu.mmu.tick_internal();
         $cpu.reg.$mysetreg($cpu.reg.$myreg().wrapping_add(1));
         return 2;
     }};
@@ -39,6 +40,7 @@ macro_rules! decr_8bit_reg {
 
 macro_rules! decr_16bit_reg {
     ($cpu:expr, $myreg:ident, $mysetreg:ident) => {{
+        $cpu.mmu.tick_internal();
         $cpu.reg.$mysetreg($cpu.reg.$myreg().wrapping_sub(1));
         return 2;
     }};
@@ -118,6 +120,7 @@ macro_rules! add_reg8_reg8 {
 
 macro_rules! add_reg16_reg16 {
     ($cpu:expr, $dst_reg:ident, $set_dst_reg:ident, $src_reg:ident) => {{
+        $cpu.mmu.tick_internal();
         $cpu.reg.set_flag(CpuFlag::H, add16_needs_half_carry($cpu.reg.$dst_reg(), $cpu.reg.$src_reg()));
         $cpu.reg.set_flag(CpuFlag::C, add16_needs_carry($cpu.reg.$dst_reg(), $cpu.reg.$src_reg()));
 
@@ -175,6 +178,9 @@ pub fn add<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
 
             // Perform the actual 16-bit operation with signed offset
             let signed_offset = offset_byte as i8 as i16;
+            cpu.mmu.tick_internal();
+            cpu.mmu.tick_internal(); // two internal ticks for 16-bit operation
+
             cpu.reg.sp = (cpu.reg.sp as i16).wrapping_add(signed_offset) as u16;
 
             cpu.reg.set_flag(CpuFlag::Z, false);

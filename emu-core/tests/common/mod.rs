@@ -1,4 +1,3 @@
-use core::num;
 use std::{cell::RefCell, collections::HashMap};
 use emu_core::memory::MemoryBus;
 use serde::{Serialize, Deserialize};
@@ -21,7 +20,6 @@ pub enum MemoryCycle {
 pub struct MockMemory {
     data: HashMap<u16, u8>, // for unit tests, only stores relevant (addr, value)
     cycles: RefCell<Vec<MemoryCycle>>, // for integration tests, stores all memory accesses
-    had_bus_activity: RefCell<bool>, // tracks if current cycle had any bus activity
 }
 
 impl MockMemory {
@@ -39,7 +37,6 @@ impl MockMemory {
 
     pub fn clear_cycles(&self) {
         self.cycles.borrow_mut().clear();
-        *self.had_bus_activity.borrow_mut() = false;
     }
 }
 
@@ -48,7 +45,6 @@ impl Default for MockMemory {
         Self {
             data: HashMap::new(),
             cycles: RefCell::new(Vec::new()),
-            had_bus_activity: RefCell::new(false),
         }
     }
 }
@@ -57,7 +53,6 @@ impl MemoryBus for MockMemory {
     fn read_byte(&self, addr: u16) -> u8 {
         let val = *self.data.get(&addr).expect(&format!("Address 0x{:04X} not found in MockMemory", addr));
         self.cycles.borrow_mut().push(MemoryCycle::BusActivity(addr, val, MemoryCycleType::Read));
-        *self.had_bus_activity.borrow_mut() = true;
         val
     }
 
@@ -67,14 +62,12 @@ impl MemoryBus for MockMemory {
 
         self.cycles.borrow_mut().push(MemoryCycle::BusActivity(addr, first, MemoryCycleType::Read));
         self.cycles.borrow_mut().push(MemoryCycle::BusActivity(addr+1, second, MemoryCycleType::Read));
-        *self.had_bus_activity.borrow_mut() = true;
 
         (first as u16) << 8 | second as u16
     }
 
     fn write_byte(&mut self, addr: u16, val: u8) {
         self.cycles.borrow_mut().push(MemoryCycle::BusActivity(addr, val, MemoryCycleType::Write));
-        *self.had_bus_activity.borrow_mut() = true;
         self.data.insert(addr, val);
     }
 
@@ -84,27 +77,18 @@ impl MemoryBus for MockMemory {
 
         self.cycles.borrow_mut().push(MemoryCycle::BusActivity(addr, high, MemoryCycleType::Write));
         self.cycles.borrow_mut().push(MemoryCycle::BusActivity(addr+1, low, MemoryCycleType::Write));
-        *self.had_bus_activity.borrow_mut() = true;
 
         self.data.insert(addr, high);
         self.data.insert(addr+1, low);
     }
 
     fn tick(&mut self, num_cycles: u8) {
-        // TODO: what if the null cycles shouldn't be added at the end of the cycle?
-        // e.g. if there is a read, then some internal operations, then a write
+        // TODO: Clean this up if it's not needed
+        // memory cicles are already recorded in read/write methods and tick_internal
+    }
 
-        // The number of null cycles = total_cycles - 1 (prefetch) - number_of_accesses_already_done
-        let recorded_cycles = self.cycles.borrow().len();
-        let expected_total = num_cycles as usize;
-
-        // Add null cycles for any remaining internal operations
-        // (before the final prefetch which will be added by read_byte)
-        let nulls_needed = expected_total.saturating_sub(recorded_cycles + 1);
-        for _ in 0..nulls_needed {
-            self.cycles.borrow_mut().push(MemoryCycle::Null);
-        }
-
-        *self.had_bus_activity.borrow_mut() = false;
+    fn tick_internal(&mut self) {
+        // Record a null cycle for internal CPU operations (no memory access)
+        self.cycles.borrow_mut().push(MemoryCycle::Null);
     }
 }

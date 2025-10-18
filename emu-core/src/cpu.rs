@@ -1,5 +1,6 @@
 use crate::ld;
 use crate::alu;
+use crate::stack;
 use crate::memory::MemoryBus;
 use crate::registers::Registers;
 
@@ -156,6 +157,13 @@ impl<M: MemoryBus> Cpu<M> {
             (0x3, 0x5) => alu::decr(self, opcode),
 
             // -- jumps
+
+            // -- stack operations
+            // pop
+            (0xC..=0xF, 0x1) => stack::pop(self, opcode),
+            (0xC..=0xF, 0x5) => stack::push(self, opcode),
+
+            // push
 
             // -- cb prefix
             (0xC, 0xB) => self.execute_cb(),

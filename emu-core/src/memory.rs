@@ -8,6 +8,13 @@ pub trait MemoryBus {
     fn read_word(&self, addr: u16) -> u16;
     fn write_word(&mut self, addr: u16, val: u16);
     fn tick(&mut self, num_cycles: u8);
+
+    /// Records an internal CPU operation that doesn't access memory (1 M-cycle).
+    /// This is important for cycle-accurate emulation and timing synchronization.
+    /// Examples: internal ALU operations, SP increment/decrement, etc.
+    fn tick_internal(&mut self) {
+        // Default implementation does nothing; test mocks can override
+    }
 }
 
 pub struct Mmu {

@@ -75,11 +75,14 @@ pub fn ld_reg_to_reg<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
             let signed_offset = offset_byte as i8 as i16;
             let result = (cpu.reg.sp as i16).wrapping_add(signed_offset) as u16;
             cpu.reg.set_hl(result);
+            cpu.mmu.tick_internal();
 
             return 3;
         }
         0xF9 => {
             cpu.reg.sp = cpu.reg.hl();
+            // SP is special and takes an extra cycle to load from HL (no direct path)
+            cpu.mmu.tick_internal();
             return 2; // extra cycle for 16-bit transfer
         }
 
