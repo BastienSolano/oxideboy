@@ -197,6 +197,14 @@ opcode_tests! {
     "c5", "d5", "e5", "f5", // PUSH BC, DE, HL, AF
 }
 
+// Register value manipulation instructions
+opcode_tests! {
+    "27", // DAA
+    "2f", // CPL
+    "3f", // CCF
+    "37", // SCF
+}
+
 fn run_single_test(test: &CpuTest) {
     // Initialize MockMemory and CPU
     let mmu = MockMemory::default();
