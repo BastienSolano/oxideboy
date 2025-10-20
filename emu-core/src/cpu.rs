@@ -298,6 +298,10 @@ impl<M: MemoryBus> Cpu<M> {
             (0xC..=0xD, 0x0) => self.ret(opcode),
             (0xC..=0xD, 0x8..=0x9) => self.ret(opcode),
 
+            // rst
+            (0xC..=0xF, 0x7) => self.rst(opcode),
+            (0xC..=0xF, 0xF) => self.rst(opcode),
+
             // -- cb prefix
             (0xC, 0xB) => self.execute_cb(),
             _ => panic!("Unknown instruction opcode: Ox{:02X}", opcode),
@@ -463,5 +467,21 @@ impl<M: MemoryBus> Cpu<M> {
     fn conditional_ret_initial_tick(&mut self, condition: bool) -> u8 {
         self.mmu.tick_internal();
         self.conditional_ret(condition)
+    }
+
+    fn rst(&mut self, opcode: u8) -> u8 {
+        let addr = match opcode {
+            0xC7 => 0x00,
+            0xCF => 0x08,
+            0xD7 => 0x10,
+            0xDF => 0x18,
+            0xE7 => 0x20,
+            0xEF => 0x28,
+            0xF7 => 0x30,
+            0xFF => 0x38,
+            _ => panic!("Not a RST instruction: 0x{:02X}", opcode),
+        };
+
+        self.direct_call(addr)
     }
 }

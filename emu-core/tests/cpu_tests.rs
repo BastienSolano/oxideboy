@@ -241,6 +241,14 @@ opcode_tests! {
     "d9", // RETI
 }
 
+// RST instructions
+opcode_tests! {
+    "c7", "cf",
+    "d7", "df",
+    "e7", "ef",
+    "f7", "ff",
+}
+
 fn run_single_test(test: &CpuTest) {
     // Initialize MockMemory and CPU
     let mmu = MockMemory::default();
