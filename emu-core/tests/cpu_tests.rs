@@ -230,6 +230,17 @@ opcode_tests! {
     "1f", // RRA
 }
 
+// CALL/RET instructions
+opcode_tests! {
+    "c4", "d4", // CALL NZ, a16; CALL NC, a16
+    "cc", "dc", // CALL Z, a16; CALL C, a16
+    "cd", // CALL a16
+    "c0", "c8", // RET NZ; RET Z
+    "d0", "d8", // RET NC; RET C
+    "c9", // RET
+    "d9", // RETI
+}
+
 fn run_single_test(test: &CpuTest) {
     // Initialize MockMemory and CPU
     let mmu = MockMemory::default();

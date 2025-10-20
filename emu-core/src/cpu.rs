@@ -3,8 +3,10 @@ use crate::alu;
 //use crate::stack;
 use crate::jumps;
 use crate::memory::MemoryBus;
+use crate::registers::CpuFlag;
 use crate::registers::Registers;
 
+use core::panic;
 use std::convert::TryFrom;
 
 pub struct Cpu<M: MemoryBus> {
@@ -283,11 +285,18 @@ impl<M: MemoryBus> Cpu<M> {
             
 
             // -- stack operations
-            // pop
+            // pop & push
             //(0xC..=0xF, 0x1) => stack::pop(self, opcode),
             //(0xC..=0xF, 0x5) => stack::push(self, opcode),
 
-            // push
+            // call
+            (0xC..=0xD, 0x4) => self.call(opcode),
+            (0xC..=0xD, 0xC) => self.call(opcode),
+            (0xC, 0xD) => self.call(opcode),
+
+            // ret
+            (0xC..=0xD, 0x0) => self.ret(opcode),
+            (0xC..=0xD, 0x8..=0x9) => self.ret(opcode),
 
             // -- cb prefix
             (0xC, 0xB) => self.execute_cb(),
@@ -382,9 +391,30 @@ impl<M: MemoryBus> Cpu<M> {
         1
     }
 
+    fn call(&mut self, opcode: u8) -> u8 {
+        let cst = self.read_word();
+        match opcode {
+            0xC4 => self.conditional_call(!self.reg.get_flag(CpuFlag::Z), cst),
+            0xCC => self.conditional_call(self.reg.get_flag(CpuFlag::Z), cst),
+            0xD4 => self.conditional_call(!self.reg.get_flag(CpuFlag::C), cst),
+            0xDC => self.conditional_call(self.reg.get_flag(CpuFlag::C), cst),
+            0xCD => self.direct_call(cst),
+            _ => panic!("Not a CALL indstruction: 0x{:02X}", opcode),
+        }
+    }
+
+    fn conditional_call(&mut self, condition: bool, addr: u16) -> u8 {
+        if condition {
+            self.direct_call(addr);
+            return 6;
+        }
+        3
+    }
+
     fn direct_call(&mut self, addr: u16) -> u8 {
         //TODO: rewrite using macro from stack.rs
         // PUSH PC
+        self.mmu.tick_internal();
         self.reg.sp = self.reg.sp.wrapping_sub(1);
         let high_addr = ((self.reg.pc & 0xFF00) >> 8) as u8;
         self.mmu.write_byte(self.reg.sp, high_addr);
@@ -395,8 +425,43 @@ impl<M: MemoryBus> Cpu<M> {
 
         // PC = ADDR
         self.reg.pc = addr;
-        self.mmu.tick_internal();
 
         4
+    }
+
+    fn ret(&mut self, opcode: u8) -> u8 {
+        match opcode {
+            0xC9 => self.conditional_ret(true),
+            0xD9 => {
+                self.ime = true;
+                self.conditional_ret(true)
+            },
+            0xC0 => self.conditional_ret_initial_tick(!self.reg.get_flag(CpuFlag::Z)),
+            0xC8 => self.conditional_ret_initial_tick(self.reg.get_flag(CpuFlag::Z)),
+            0xD0 => self.conditional_ret_initial_tick(!self.reg.get_flag(CpuFlag::C)),
+            0xD8 => self.conditional_ret_initial_tick(self.reg.get_flag(CpuFlag::C)),
+            _ => panic!("Not a RET indstruction: 0x{:02X}", opcode),
+        }
+    }
+
+    fn conditional_ret(&mut self, condition: bool) -> u8 {
+        if condition {
+            let low = self.mmu.read_byte(self.reg.sp) as u16;
+            self.reg.sp = self.reg.sp.wrapping_add(1);
+
+            let high = self.mmu.read_byte(self.reg.sp) as u16;
+            self.reg.sp = self.reg.sp.wrapping_add(1);
+
+            self.mmu.tick_internal();
+            self.reg.pc = (high << 8) | low;
+
+            return 5;
+        }
+        2
+    }
+
+    fn conditional_ret_initial_tick(&mut self, condition: bool) -> u8 {
+        self.mmu.tick_internal();
+        self.conditional_ret(condition)
     }
 }
