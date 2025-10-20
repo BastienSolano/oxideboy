@@ -222,6 +222,14 @@ opcode_tests! {
     "e9", // JP HL
 }
 
+// RL/RR instructions
+opcode_tests! {
+    "07", // RLCA
+    "0f", // RRCA
+    "17", // RLA
+    "1f", // RRA
+}
+
 fn run_single_test(test: &CpuTest) {
     // Initialize MockMemory and CPU
     let mmu = MockMemory::default();

@@ -153,6 +153,12 @@ impl<M: MemoryBus> Cpu<M> {
             (0xB, 0x8..=0xF) => alu::cp(self, opcode),
             (0xF, 0xE) => alu::cp(self, opcode),
 
+            // rlca/rrca & rla/rra
+            (0x0, 0x7) => alu::rlca(self),
+            (0x0, 0xF) => alu::rrca(self),
+            (0x1, 0x7) => alu::rla(self),
+            (0x1, 0xF) => alu::rra(self),
+
             // -- 16-bit alu
             // increment 16-bit registers
             (0x0..=0x3, 0x3) => alu::incr(self, opcode),

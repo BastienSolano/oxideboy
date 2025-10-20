@@ -526,3 +526,39 @@ pub fn cp<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
         _ => panic!("Not a CP instruction: 0x{:02X}", opcode),
     }
 }
+
+pub fn rla<M: MemoryBus>(cpu: &mut Cpu<M>) -> u8 {
+    let carry: u8 = if cpu.reg.get_flag(CpuFlag::C) { 1} else { 0 };
+    cpu.reg.clear_flags();
+    cpu.reg.set_flag(CpuFlag::C, cpu.reg.a & 0x80 > 0); // C flag <- bit 7 of A
+    cpu.reg.a = cpu.reg.a << 1;
+    cpu.reg.a = ( cpu.reg.a & 0xFE ) | carry;
+    2
+}
+
+pub fn rra<M: MemoryBus>(cpu: &mut Cpu<M>) -> u8 {
+    let carry: u8 = if cpu.reg.get_flag(CpuFlag::C) { 1} else { 0 };
+    cpu.reg.clear_flags();
+    cpu.reg.set_flag(CpuFlag::C, cpu.reg.a & 1 > 0); // C flag <- bit 7 of A
+    cpu.reg.a = cpu.reg.a >> 1;
+    cpu.reg.a = ( cpu.reg.a & 0x7F ) | ( carry << 7 );
+    2
+}
+
+pub fn rlca<M: MemoryBus>(cpu: &mut Cpu<M>) -> u8 {
+    cpu.reg.clear_flags();
+    let bit7 = (cpu.reg.a & 0x80) >> 7;
+    cpu.reg.a = cpu.reg.a << 1;
+    cpu.reg.a = ( cpu.reg.a & 0xFE ) | bit7;
+    cpu.reg.set_flag(CpuFlag::C, bit7 == 1);
+    2
+}
+
+pub fn rrca<M: MemoryBus>(cpu: &mut Cpu<M>) -> u8 {
+    cpu.reg.clear_flags();
+    let bit0 = cpu.reg.a & 1;
+    cpu.reg.a = cpu.reg.a >> 1;
+    cpu.reg.a = ( cpu.reg.a & 0x7F ) | ( bit0 << 7 );
+    cpu.reg.set_flag(CpuFlag::C, bit0 == 1);
+    2
+}
