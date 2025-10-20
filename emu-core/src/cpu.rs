@@ -313,8 +313,18 @@ impl<M: MemoryBus> Cpu<M> {
         let opcode = self.read_byte();
         let high = (opcode & 0xF0) >> 4;
         let low = opcode & 0x0F;
-        //TODO implement CB logic
         match (high, low) {
+            (0x0, 0x0..=0x7) => alu::rlc(self, opcode), // RLC r
+            (0x0, 0x8..=0xF) => alu::rrc(self, opcode), // RRC r
+            (0x1, 0x0..=0x7) => alu::rl(self, opcode), // RL r
+            (0x1, 0x8..=0xF) => alu::rr(self, opcode), // RR r
+            (0x2, 0x0..=0x7) => todo!(), // SLA r
+            (0x2, 0x8..=0xF) => todo!(), // SRA r
+            (0x3, 0x0..=0x7) => todo!(), // SWAP r
+            (0x3, 0x8..=0xF) => todo!(), // SRL r
+            (0x4..=0x7, 0x0..=0xF) => todo!(), // BIT b, r
+            (0x8..=0xB, 0x0..=0xF) => todo!(), // RES b, r
+            (0xC..=0xF, 0x0..=0xF) => todo!(), // SET b, r
             _ => panic!("Unkown CB prefix instruction opcode: 0xCB{:02X}", opcode),
         }
     }

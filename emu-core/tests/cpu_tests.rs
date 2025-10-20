@@ -249,6 +249,11 @@ opcode_tests! {
     "f7", "ff",
 }
 
+// 0xCB (not very granular...)
+opcode_tests! {
+    "cb"
+}
+
 fn run_single_test(test: &CpuTest) {
     // Initialize MockMemory and CPU
     let mmu = MockMemory::default();

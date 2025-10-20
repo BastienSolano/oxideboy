@@ -1,3 +1,5 @@
+use core::panic;
+
 use crate::memory::MemoryBus;
 use crate::cpu::Cpu;
 use crate::registers::*;
@@ -560,5 +562,173 @@ pub fn rrca<M: MemoryBus>(cpu: &mut Cpu<M>) -> u8 {
     cpu.reg.a = cpu.reg.a >> 1;
     cpu.reg.a = ( cpu.reg.a & 0x7F ) | ( bit0 << 7 );
     cpu.reg.set_flag(CpuFlag::C, bit0 == 1);
+    2
+}
+
+macro_rules! rlc_reg8 {
+    ($cpu:expr, $reg:ident) => {{
+        $cpu.reg.clear_flags();
+        let bit7 = ($cpu.reg.$reg & 0x80) >> 7;
+        $cpu.reg.set_flag(CpuFlag::C, bit7 != 0);
+        $cpu.reg.$reg <<= 1;
+        $cpu.reg.$reg |= bit7; 
+        $cpu.reg.set_flag(CpuFlag::Z, $cpu.reg.$reg == 0);
+    }};
+}
+
+pub fn rlc<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
+    match opcode {
+        0x00 => rlc_reg8!(cpu, b),
+        0x01 => rlc_reg8!(cpu, c),
+        0x02 => rlc_reg8!(cpu, d),
+        0x03 => rlc_reg8!(cpu, e),
+        0x04 => rlc_reg8!(cpu, h),
+        0x05 => rlc_reg8!(cpu, l),
+        0x07 => rlc_reg8!(cpu, a),
+        0x06 => {
+            let mut cst = cpu.mmu.read_byte(cpu.reg.hl());
+
+            cpu.reg.clear_flags();
+
+            let bit7 = (cst & 0x80) >> 7;
+            cpu.reg.set_flag(CpuFlag::C, bit7 != 0);
+            cst <<= 1;
+            cst |= bit7; 
+            cpu.reg.set_flag(CpuFlag::Z, cst == 0);
+
+
+            cpu.mmu.write_byte(cpu.reg.hl(), cst);
+
+            return 4;
+        },
+        _ => panic!("Not a RLC instruction: 0x{:02X}", opcode),
+    }
+    2
+}
+
+macro_rules! rrc_reg8 {
+    ($cpu:expr, $reg:ident) => {{
+        $cpu.reg.clear_flags();
+        let bit0 = $cpu.reg.$reg & 1;
+        $cpu.reg.set_flag(CpuFlag::C, bit0 != 0);
+        $cpu.reg.$reg >>= 1;
+        $cpu.reg.$reg |= bit0 << 7; 
+        $cpu.reg.set_flag(CpuFlag::Z, $cpu.reg.$reg == 0);
+    }};
+}
+
+pub fn rrc<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
+    match opcode {
+        0x00 => rrc_reg8!(cpu, b),
+        0x01 => rrc_reg8!(cpu, c),
+        0x02 => rrc_reg8!(cpu, d),
+        0x03 => rrc_reg8!(cpu, e),
+        0x04 => rrc_reg8!(cpu, h),
+        0x05 => rrc_reg8!(cpu, l),
+        0x07 => rrc_reg8!(cpu, a),
+        0x06 => {
+            let mut cst = cpu.mmu.read_byte(cpu.reg.hl());
+
+            cpu.reg.clear_flags();
+
+            let bit0 = cst & 1;
+            cpu.reg.set_flag(CpuFlag::C, bit0 != 0);
+            cst >>= 1;
+            cst |= bit0 << 7; 
+            cpu.reg.set_flag(CpuFlag::Z, cst == 0);
+
+
+            cpu.mmu.write_byte(cpu.reg.hl(), cst);
+
+            return 4;
+        },
+        _ => panic!("Not a RRC instruction: 0x{:02X}", opcode),
+    }
+    2
+}
+
+macro_rules! rl_reg8 {
+    ($cpu:expr, $reg:ident) => {{
+        $cpu.reg.clear_flags();
+        let bit7 = ($cpu.reg.$reg & 0x80) >> 7;
+        let carry = if $cpu.reg.get_flag(CpuFlag::C) { 1 } else { 0 };
+        $cpu.reg.set_flag(CpuFlag::C, bit7 != 0);
+        $cpu.reg.$reg <<= 1;
+        $cpu.reg.$reg |= carry; 
+        $cpu.reg.set_flag(CpuFlag::Z, $cpu.reg.$reg == 0);
+    }};
+}
+
+pub fn rl<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
+    match opcode {
+        0x00 => rl_reg8!(cpu, b),
+        0x01 => rl_reg8!(cpu, c),
+        0x02 => rl_reg8!(cpu, d),
+        0x03 => rl_reg8!(cpu, e),
+        0x04 => rl_reg8!(cpu, h),
+        0x05 => rl_reg8!(cpu, l),
+        0x07 => rl_reg8!(cpu, a),
+        0x06 => {
+            let mut cst = cpu.mmu.read_byte(cpu.reg.hl());
+
+            cpu.reg.clear_flags();
+
+            let bit7 = (cst & 0x80) >> 7;
+            let carry = if cpu.reg.get_flag(CpuFlag::C) { 1 } else { 0 };
+            cpu.reg.set_flag(CpuFlag::C, bit7 != 0);
+            cst <<= 1;
+            cst |= carry; 
+            cpu.reg.set_flag(CpuFlag::Z, cst == 0);
+
+
+            cpu.mmu.write_byte(cpu.reg.hl(), cst);
+
+            return 4;
+        },
+        _ => panic!("Not a RLC instruction: 0x{:02X}", opcode),
+    }
+    2
+}
+
+macro_rules! rr_reg8 {
+    ($cpu:expr, $reg:ident) => {{
+        $cpu.reg.clear_flags();
+        let bit0 = $cpu.reg.$reg & 1;
+        let carry = if $cpu.reg.get_flag(CpuFlag::C) { 1 } else { 0 };
+        $cpu.reg.set_flag(CpuFlag::C, bit0 != 0);
+        $cpu.reg.$reg >>= 1;
+        $cpu.reg.$reg |= carry << 7; 
+        $cpu.reg.set_flag(CpuFlag::Z, $cpu.reg.$reg == 0);
+    }};
+}
+
+pub fn rr<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
+    match opcode {
+        0x00 => rr_reg8!(cpu, b),
+        0x01 => rr_reg8!(cpu, c),
+        0x02 => rr_reg8!(cpu, d),
+        0x03 => rr_reg8!(cpu, e),
+        0x04 => rr_reg8!(cpu, h),
+        0x05 => rr_reg8!(cpu, l),
+        0x07 => rr_reg8!(cpu, a),
+        0x06 => {
+            let mut cst = cpu.mmu.read_byte(cpu.reg.hl());
+
+            cpu.reg.clear_flags();
+
+            let bit0 = cst & 1;
+            let carry = if cpu.reg.get_flag(CpuFlag::C) { 1 } else { 0 };
+            cpu.reg.set_flag(CpuFlag::C, bit0 != 0);
+            cst >>= 1;
+            cst |= carry << 7; 
+            cpu.reg.set_flag(CpuFlag::Z, cst == 0);
+
+
+            cpu.mmu.write_byte(cpu.reg.hl(), cst);
+
+            return 4;
+        },
+        _ => panic!("Not a RRC instruction: 0x{:02X}", opcode),
+    }
     2
 }
