@@ -5,6 +5,8 @@ use crate::jumps;
 use crate::memory::MemoryBus;
 use crate::registers::Registers;
 
+use std::convert::TryFrom;
+
 pub struct Cpu<M: MemoryBus> {
     pub reg: Registers,
     halted: bool,
@@ -15,12 +17,36 @@ pub struct Cpu<M: MemoryBus> {
     pub mmu: M,
 }
 
+#[repr(u8)]
+enum InterruptFlag {
+    VBlank = 0,
+    LCD = 1,
+    Timer = 2,
+    Serial = 3,
+    Joypad = 4,
+}
+
+impl TryFrom<u8> for InterruptFlag {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(InterruptFlag::VBlank),
+            1 => Ok(InterruptFlag::LCD),
+            2 => Ok(InterruptFlag::Timer),
+            3 => Ok(InterruptFlag::Serial),
+            4 => Ok(InterruptFlag::Joypad),
+            _ => Err(()),
+        }
+    }
+}
+
 impl<M: MemoryBus> Cpu<M> {
     pub fn new(mmu: M) -> Self {
         Self {
             reg: Registers::new(),
             halted: false,
-            ime: false, // TODO: check bootup value
+            ime: false, // true if interrupts are enabled
             setei: 0,   // same
             setdi: 0,   // same
             prefetched: 0,
@@ -29,17 +55,82 @@ impl<M: MemoryBus> Cpu<M> {
     }
 
     pub fn tick(&mut self) {
-        // TODO: update timers and handle interrupts
+        self.update_ime();
+
+        self.handle_interrupts();
 
         if self.halted {
             return;
         }
 
         let cycles = self.execute();
-        self.mmu.tick(cycles);
+        self.mmu.tick(cycles); //TODO: needed? Since we already tick the mmu at each instruction..
 
         // Prefetch next opcode
         self.prefetched = self.read_byte();
+    }
+
+    fn update_ime(&mut self) {
+        // when updating ime (via "set di" or "set ei"), the effect is delayed by one instruction
+        // (see: https://gbdev.io/pandocs/Interrupts.html)
+        if self.setei > 0 {
+            self.setei -= 1;
+            if self.setei == 0 {
+                self.ime = true;
+            }
+        }
+
+        if self.setdi > 0 {
+            self.setdi -= 1;
+            if self.setdi == 0 {
+                self.ime = false;
+            }
+        }
+    }
+
+    fn handle_interrupts(&mut self) -> u8 {
+        // don't handle interrupts if ime is disabled
+        if !self.ime {
+            return 0;
+        }
+
+        let interrupt_enabled = self.mmu.read_byte(0xFFFF);
+
+        if (interrupt_enabled & 0x1F) == 0 {
+            return 0; // no interrupts enabled
+        }
+
+        let interrupt_flags = self.mmu.read_byte(0xFF0F);
+        let pending_interrupts = interrupt_enabled & interrupt_flags;
+
+        // look for the highest priority interrupt that is requested and enabled
+        // (lowest set byte in 0xFFFF & 0xFF0F)
+        for i in 0..5 {
+            if pending_interrupts & (1 << i) > 0 {
+                // IME is set, interrupt i is enabled and requested: handle it
+                let flag = InterruptFlag::try_from(i as u8).unwrap();
+                
+                // unset the corresponding IF flag
+                self.mmu.write_byte(0xFF0F, interrupt_flags ^ (1 << i));
+                // unset IME to disable other interrupts in the meantime
+                self.ime = false; // TODO: shoud we handle nested interrupts?
+
+                // Call the associated interrupt handler
+                return self.call_interrupt_handler(flag);
+            }
+        }
+
+        panic!("An interrupt should have been handled..");
+    }
+
+    fn call_interrupt_handler(&mut self, flag: InterruptFlag) -> u8 {
+        match flag {
+            InterruptFlag::VBlank => self.direct_call(0x40),
+            InterruptFlag::LCD    => self.direct_call(0x48),
+            InterruptFlag::Timer  => self.direct_call(0x50),
+            InterruptFlag::Serial => self.direct_call(0x58),
+            InterruptFlag::Joypad => self.direct_call(0x60),
+        }
     }
 
     pub fn read_byte(&mut self) -> u8 {
@@ -65,6 +156,17 @@ impl<M: MemoryBus> Cpu<M> {
         let low = opcode & 0x0F;
         match (high, low) {
             (0, 0) => 1, // NOP
+            (0x7, 0x6) => { // HALT
+                self.halted = true;
+                1
+            },
+            (0x1, 0x0) => { // STOP
+                self.read_byte(); // STOP is a 2 bytes instruction
+                self.halted = true; //TODO: add a separate flag as wake up conditoin is different from halt
+                2
+            },
+            (0xF, 0x3) => self.set_di(),
+            (0xF, 0xB) => self.set_ei(),
 
             // -- register manipulations
             (0x2, 0x7) => self.daa(),
@@ -268,5 +370,33 @@ impl<M: MemoryBus> Cpu<M> {
         self.reg.f ^= 0x10; // Toggle C flag
 
         1
+    }
+
+    fn set_ei(&mut self) -> u8 {
+        self.setei = 2;
+        1
+    }
+
+    fn set_di(&mut self) -> u8 {
+        self.setdi = 2;
+        1
+    }
+
+    fn direct_call(&mut self, addr: u16) -> u8 {
+        //TODO: rewrite using macro from stack.rs
+        // PUSH PC
+        self.reg.sp = self.reg.sp.wrapping_sub(1);
+        let high_addr = ((self.reg.pc & 0xFF00) >> 8) as u8;
+        self.mmu.write_byte(self.reg.sp, high_addr);
+
+        self.reg.sp = self.reg.sp.wrapping_sub(1);
+        let low_addr = (self.reg.pc & 0x00FF) as u8;
+        self.mmu.write_byte(self.reg.sp, low_addr);
+
+        // PC = ADDR
+        self.reg.pc = addr;
+        self.mmu.tick_internal();
+
+        4
     }
 }
