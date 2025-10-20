@@ -1,5 +1,3 @@
-use core::num;
-
 const RAM_SIZE: usize = 8192; 
 
 pub trait MemoryBus {

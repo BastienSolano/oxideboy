@@ -1,6 +1,7 @@
 use crate::ld;
 use crate::alu;
-use crate::stack;
+//use crate::stack;
+use crate::jumps;
 use crate::memory::MemoryBus;
 use crate::registers::Registers;
 
@@ -163,11 +164,20 @@ impl<M: MemoryBus> Cpu<M> {
             (0x3, 0x5) => alu::decr(self, opcode),
 
             // -- jumps
+            // relative jumps
+            (0x2..=0x3, 0x0) => jumps::jr(self, opcode),
+            (0x1..=0x3, 0x8) => jumps::jr(self, opcode),
+            // absolute jumps
+            (0xC..=0xD, 0x2) => jumps::jp(self, opcode),
+            (0xC, 0x3) => jumps::jp(self, opcode),
+            (0xE, 0x9) => jumps::jp(self, opcode),
+            (0xC..=0xD, 0xA) => jumps::jp(self, opcode),
+            
 
             // -- stack operations
             // pop
-            (0xC..=0xF, 0x1) => stack::pop(self, opcode),
-            (0xC..=0xF, 0x5) => stack::push(self, opcode),
+            //(0xC..=0xF, 0x1) => stack::pop(self, opcode),
+            //(0xC..=0xF, 0x5) => stack::push(self, opcode),
 
             // push
 
