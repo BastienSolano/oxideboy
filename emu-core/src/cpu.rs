@@ -318,13 +318,13 @@ impl<M: MemoryBus> Cpu<M> {
             (0x0, 0x8..=0xF) => alu::rrc(self, opcode), // RRC r
             (0x1, 0x0..=0x7) => alu::rl(self, opcode), // RL r
             (0x1, 0x8..=0xF) => alu::rr(self, opcode), // RR r
-            (0x2, 0x0..=0x7) => todo!(), // SLA r
-            (0x2, 0x8..=0xF) => todo!(), // SRA r
-            (0x3, 0x0..=0x7) => todo!(), // SWAP r
-            (0x3, 0x8..=0xF) => todo!(), // SRL r
-            (0x4..=0x7, 0x0..=0xF) => todo!(), // BIT b, r
-            (0x8..=0xB, 0x0..=0xF) => todo!(), // RES b, r
-            (0xC..=0xF, 0x0..=0xF) => todo!(), // SET b, r
+            (0x2, 0x0..=0x7) => alu::sla(self, opcode), // SLA r
+            (0x2, 0x8..=0xF) => alu::sra(self, opcode), // SRA r
+            (0x3, 0x0..=0x7) => alu::swap(self, opcode), // SWAP r
+            (0x3, 0x8..=0xF) => alu::srl(self, opcode), // SRL r
+            (0x4..=0x7, 0x0..=0xF) => alu::bit(self, opcode), // BIT b, r
+            (0x8..=0xB, 0x0..=0xF) => alu::res(self, opcode), // RES b, r
+            (0xC..=0xF, 0x0..=0xF) => alu::set(self, opcode), // SET b, r
             _ => panic!("Unkown CB prefix instruction opcode: 0xCB{:02X}", opcode),
         }
     }
