@@ -56,12 +56,17 @@ impl<M: MemoryBus> Cpu<M> {
     }
 
     pub fn tick(&mut self) {
-        self.update_ime();
-
         self.handle_interrupts();
 
         if self.halted {
-            return;
+            // Check if there are any pending interrupts to wake from HALT
+            let interrupt_enabled = self.mmu.read_byte(0xFFFF);
+            let interrupt_flags = self.mmu.read_byte(0xFF0F);
+            if (interrupt_enabled & interrupt_flags & 0x1F) != 0 {
+                self.halted = false;
+            } else {
+                return;
+            }
         }
 
         let cycles = self.execute();
@@ -69,23 +74,28 @@ impl<M: MemoryBus> Cpu<M> {
 
         // Prefetch next opcode
         self.prefetched = self.read_byte();
+
+        // Update IME after instruction execution to implement EI/DI delay
+        self.update_ime();
     }
 
     fn update_ime(&mut self) {
         // when updating ime (via "set di" or "set ei"), the effect is delayed by one instruction
         // (see: https://gbdev.io/pandocs/Interrupts.html)
+        // Counter of 1 means: IME will be updated after next instruction
+        // Counter of 0 means: no pending IME update
         if self.setei > 0 {
-            self.setei -= 1;
-            if self.setei == 0 {
+            if self.setei == 1 {
                 self.ime = true;
             }
+            self.setei -= 1;
         }
 
         if self.setdi > 0 {
-            self.setdi -= 1;
-            if self.setdi == 0 {
+            if self.setdi == 1 {
                 self.ime = false;
             }
+            self.setdi -= 1;
         }
     }
 
@@ -110,18 +120,22 @@ impl<M: MemoryBus> Cpu<M> {
             if pending_interrupts & (1 << i) > 0 {
                 // IME is set, interrupt i is enabled and requested: handle it
                 let flag = InterruptFlag::try_from(i as u8).unwrap();
-                
+
+                // Two internal cycles for interrupt dispatch
+                self.mmu.tick_internal();
+                self.mmu.tick_internal();
+
                 // unset the corresponding IF flag
                 self.mmu.write_byte(0xFF0F, interrupt_flags ^ (1 << i));
                 // unset IME to disable other interrupts in the meantime
                 self.ime = false; // TODO: shoud we handle nested interrupts?
 
-                // Call the associated interrupt handler
+                // Call the associated interrupt handler (this pushes PC and jumps)
                 return self.call_interrupt_handler(flag);
             }
         }
 
-        panic!("An interrupt should have been handled..");
+        0 // TODO: what to return here?
     }
 
     fn call_interrupt_handler(&mut self, flag: InterruptFlag) -> u8 {
@@ -395,12 +409,12 @@ impl<M: MemoryBus> Cpu<M> {
     }
 
     fn set_ei(&mut self) -> u8 {
-        self.setei = 2;
+        self.setei = 2;  // Enable interrupts after next instruction
         1
     }
 
     fn set_di(&mut self) -> u8 {
-        self.setdi = 2;
+        self.setdi = 2;  // Disable interrupts after next instruction
         1
     }
 
