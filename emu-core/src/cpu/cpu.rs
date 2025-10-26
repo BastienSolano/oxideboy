@@ -55,6 +55,48 @@ impl<M: MemoryBus> Cpu<M> {
         }
     }
 
+    pub fn boot_rom_initialized(mmu: M) -> Self {
+        let mut cpu = Self::new(mmu);
+
+        cpu.reg.a = 0x01;
+        cpu.reg.clear_flags();
+        cpu.reg.set_flag(CpuFlag::C, true);
+        cpu.reg.set_flag(CpuFlag::H, true);
+        cpu.reg.set_flag(CpuFlag::Z, true);
+        cpu.reg.b = 0x00;
+        cpu.reg.c = 0x13;
+        cpu.reg.d = 0x00;
+        cpu.reg.e = 0xD8;
+        cpu.reg.h = 0x01;
+        cpu.reg.l = 0x4D;
+        cpu.reg.sp = 0xFFFE;
+        cpu.reg.pc = 0x100;
+        cpu.prefetched = cpu.mmu.read_byte(0x100);
+
+        cpu
+    }
+
+    pub fn doctor_log_state(&self) -> String {
+        format!(
+            "A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}",
+            self.reg.a,
+            self.reg.f,
+            self.reg.b,
+            self.reg.c,
+            self.reg.d,
+            self.reg.e,
+            self.reg.h,
+            self.reg.l,
+            self.reg.sp,
+            self.reg.pc-1, // -1 because prefetched contains the current instruction
+                           // and PC contains the adress of the next instruction
+            self.prefetched,
+            self.mmu.read_byte(self.reg.pc),
+            self.mmu.read_byte(self.reg.pc+1),
+            self.mmu.read_byte(self.reg.pc+2),
+        )
+    }
+
     pub fn tick(&mut self) {
         self.handle_interrupts();
 

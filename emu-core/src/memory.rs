@@ -85,6 +85,7 @@ impl MemoryBus for Mmu {
                     0xFF01 => self.sb,
                     0xFF02 => self.sc,
                     0xFF0F => self.if_reg,
+                    0xFF44 => 0x90, // LY register (just return a dummy value for Gameboy Doctor tests)
                     _ => 0xFF, // Other I/O registers not implemented yet
                 }
             }
