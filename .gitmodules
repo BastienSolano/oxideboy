@@ -1,3 +1,6 @@
-[submodule "emu-core/tests/data"]
-	path = emu-core/tests/data
+[submodule "emu-core/tests/data/instr_tests"]
+	path = emu-core/tests/data/instr_tests
 	url = https://github.com/adtennant/GameboyCPUTests.git
+[submodule "emu-core/tests/data/blarggs"]
+	path = emu-core/tests/data/blarggs
+	url = https://github.com/retrio/gb-test-roms

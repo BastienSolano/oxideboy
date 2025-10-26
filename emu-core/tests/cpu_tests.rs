@@ -7,7 +7,7 @@ use emu_core::memory::MemoryBus;
 use crate::common::MockMemory;
 use crate::common::MemoryCycle;
 
-static TESTS_PATH: &str = "tests/data/v2";
+static TESTS_PATH: &str = "tests/data/instr_tests/v2";
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 struct CpuState {
