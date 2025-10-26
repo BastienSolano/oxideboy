@@ -192,10 +192,10 @@ opcode_tests! {
 }
 
 // Push/Pop instructions
-// opcode_tests! {
-//     "c1", "d1", "e1", "f1", // POP BC, DE, HL, AF
-//     "c5", "d5", "e5", "f5", // PUSH BC, DE, HL, AF
-// }
+opcode_tests! {
+    "c1", "d1", "e1", "f1", // POP BC, DE, HL, AF
+    "c5", "d5", "e5", "f5", // PUSH BC, DE, HL, AF
+}
 
 // Register value manipulation instructions
 opcode_tests! {

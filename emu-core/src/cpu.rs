@@ -1,6 +1,6 @@
 use crate::ld;
 use crate::alu;
-//use crate::stack;
+use crate::stack;
 use crate::jumps;
 use crate::memory::MemoryBus;
 use crate::registers::CpuFlag;
@@ -286,8 +286,8 @@ impl<M: MemoryBus> Cpu<M> {
 
             // -- stack operations
             // pop & push
-            //(0xC..=0xF, 0x1) => stack::pop(self, opcode),
-            //(0xC..=0xF, 0x5) => stack::push(self, opcode),
+            (0xC..=0xF, 0x1) => stack::pop(self, opcode),
+            (0xC..=0xF, 0x5) => stack::push(self, opcode),
 
             // call
             (0xC..=0xD, 0x4) => self.call(opcode),
