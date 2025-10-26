@@ -1,8 +1,8 @@
 use core::panic;
 
-use crate::cpu::Cpu;
+use crate::cpu::cpu::Cpu;
 use crate::memory::MemoryBus;
-use crate::registers::CpuFlag;
+use crate::cpu::registers::CpuFlag;
 
 fn jr_conditional<M: MemoryBus>(cpu:&mut Cpu<M>, condition: bool) -> u8 {
     let steps = cpu.read_byte();

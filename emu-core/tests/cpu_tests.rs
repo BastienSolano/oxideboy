@@ -1,7 +1,7 @@
 mod common;
 
 use serde::{Serialize, Deserialize};
-use emu_core::cpu::Cpu;
+use emu_core::cpu::cpu::Cpu;
 use emu_core::memory::MemoryBus;
 
 use crate::common::MockMemory;

@@ -1,9 +1,9 @@
 use std::panic;
 
 use crate::memory::MemoryBus;
-use crate::cpu::Cpu;
+use crate::cpu::cpu::Cpu;
 
-use crate::registers::*;
+use crate::cpu::registers::*;
 
 pub fn ld_reg_to_reg<M: MemoryBus>(cpu: &mut Cpu<M>, opcode: u8) -> u8 {
     match opcode {

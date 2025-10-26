@@ -1,10 +1,9 @@
-use crate::ld;
-use crate::alu;
-use crate::stack;
-use crate::jumps;
+use crate::cpu::ld;
+use crate::cpu::alu;
+use crate::cpu::stack;
+use crate::cpu::jumps;
 use crate::memory::MemoryBus;
-use crate::registers::CpuFlag;
-use crate::registers::Registers;
+use crate::cpu::registers::{CpuFlag, Registers};
 
 use core::panic;
 use std::convert::TryFrom;

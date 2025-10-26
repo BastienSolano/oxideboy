@@ -1,8 +1,8 @@
 use core::panic;
 
 use crate::memory::MemoryBus;
-use crate::cpu::Cpu;
-use crate::registers::*;
+use crate::cpu::cpu::Cpu;
+use crate::cpu::registers::*;
 
 macro_rules! incr_8bit_reg {
     ($cpu:expr, $myreg:ident) => {{

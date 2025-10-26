@@ -1,4 +1,4 @@
-use crate::{cpu::Cpu, memory::MemoryBus};
+use crate::{cpu::cpu::Cpu, memory::MemoryBus};
 
 macro_rules! pop_reg16 {
     ($cpu:expr, $hreg:ident, $lreg:ident) => {{
