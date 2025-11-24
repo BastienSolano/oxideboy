@@ -98,8 +98,6 @@ impl<M: MemoryBus> Cpu<M> {
     }
 
     pub fn tick(&mut self) {
-        self.handle_interrupts();
-
         if self.halted {
             // Check if there are any pending interrupts to wake from HALT
             let interrupt_enabled = self.mmu.read_byte(0xFFFF);
@@ -112,13 +110,29 @@ impl<M: MemoryBus> Cpu<M> {
         }
 
         let cycles = self.execute();
-        self.mmu.tick(cycles); //TODO: needed? Since we already tick the mmu at each instruction..
+        self.mmu.tick(cycles);
 
         // Prefetch next opcode
         self.prefetched = self.read_byte();
 
         // Update IME after instruction execution to implement EI/DI delay
         self.update_ime();
+
+        // Check and handle interrupts AFTER instruction execution
+        if self.handle_interrupts() {
+            // An interrupt was serviced, PC now points to interrupt vector
+            // Fetch the first instruction of the handler
+            self.prefetched = self.read_byte();
+
+            // Execute it immediately (interrupt + first instruction happen in same tick)
+            let cycles = self.execute();
+            self.mmu.tick(cycles);
+
+            // Prefetch the next instruction
+            self.prefetched = self.read_byte();
+
+            // Note: update_ime was already called above, so IME delay is handled
+        }
     }
 
     fn update_ime(&mut self) {
@@ -141,16 +155,16 @@ impl<M: MemoryBus> Cpu<M> {
         }
     }
 
-    fn handle_interrupts(&mut self) -> u8 {
+    fn handle_interrupts(&mut self) -> bool {
         // don't handle interrupts if ime is disabled
         if !self.ime {
-            return 0;
+            return false;
         }
 
         let interrupt_enabled = self.mmu.read_byte(0xFFFF);
 
         if (interrupt_enabled & 0x1F) == 0 {
-            return 0; // no interrupts enabled
+            return false; // no interrupts enabled
         }
 
         let interrupt_flags = self.mmu.read_byte(0xFF0F);
@@ -173,11 +187,14 @@ impl<M: MemoryBus> Cpu<M> {
                 self.ime = false; // TODO: shoud we handle nested interrupts?
 
                 // Call the associated interrupt handler (this pushes PC and jumps)
-                return self.call_interrupt_handler(flag);
+                let cycles = self.call_interrupt_handler(flag);
+                self.mmu.tick(cycles);
+
+                return true; // Interrupt was serviced
             }
         }
 
-        0 // TODO: what to return here?
+        false // No interrupt was serviced
     }
 
     fn call_interrupt_handler(&mut self, flag: InterruptFlag) -> u8 {
@@ -194,7 +211,7 @@ impl<M: MemoryBus> Cpu<M> {
         // At this point, the next instruction is not yet prefetched
         // so self.prefetched contains the current instruction
         let val = self.mmu.read_byte(self.reg.pc);
-        self.reg.pc += 1;
+        self.reg.pc = self.reg.pc.wrapping_add(1); // ensure wrapping on overflow
 
         val
     }
@@ -483,13 +500,14 @@ impl<M: MemoryBus> Cpu<M> {
     fn direct_call(&mut self, addr: u16) -> u8 {
         //TODO: rewrite using macro from stack.rs
         // PUSH PC
+        let current_instr_addr = self.reg.pc - 1; // -1 because PC points to next instruction
         self.mmu.tick_internal();
         self.reg.sp = self.reg.sp.wrapping_sub(1);
-        let high_addr = ((self.reg.pc & 0xFF00) >> 8) as u8;
+        let high_addr = ((current_instr_addr & 0xFF00) >> 8) as u8;
         self.mmu.write_byte(self.reg.sp, high_addr);
 
         self.reg.sp = self.reg.sp.wrapping_sub(1);
-        let low_addr = (self.reg.pc & 0x00FF) as u8;
+        let low_addr = (current_instr_addr & 0x00FF) as u8;
         self.mmu.write_byte(self.reg.sp, low_addr);
 
         // PC = ADDR
@@ -523,6 +541,8 @@ impl<M: MemoryBus> Cpu<M> {
 
             self.mmu.tick_internal();
             self.reg.pc = (high << 8) | low;
+
+            self.prefetched = self.read_byte(); // Pre-fetch next instruction and increment PC
 
             return 5;
         }
