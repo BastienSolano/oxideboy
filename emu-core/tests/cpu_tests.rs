@@ -269,4 +269,12 @@ fn run_single_test(test: &CpuTest) {
     // Compare memory cycles
     let recorded_cycles = cpu.mmu.get_cycles();
     assert_eq!(recorded_cycles, test.cycles, "Memory cycles do not match for test '{}'", test.name);
+
+    // Compare the M-cycle count the CPU reports to the memory bus
+    assert_eq!(
+        cpu.mmu.get_ticked() as usize,
+        test.cycles.len(),
+        "Ticked cycle count does not match for test '{}'",
+        test.name
+    );
 }

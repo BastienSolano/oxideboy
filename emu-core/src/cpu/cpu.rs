@@ -124,7 +124,6 @@ impl<M: MemoryBus> Cpu<M> {
             // An interrupt was serviced, PC now points to interrupt vector
             // Fetch the first instruction of the handler
             self.prefetched = self.read_byte();
-            return;
         }
     }
 
@@ -176,8 +175,11 @@ impl<M: MemoryBus> Cpu<M> {
                 self.reg.pc = self.reg.pc.wrapping_sub(1);
 
                 // Call the associated interrupt handler (this pushes PC and jumps)
-                let cycles = self.call_interrupt_handler(flag);
-                self.mmu.tick(cycles);
+                self.call_interrupt_handler(flag);
+                self.mmu.tick(5); // hardcoded because interrupt handling takes 5 M-cycles
+                                              // whereas call_interrupt_handler uses direct_call behind the scenes
+                                              // and it uses 4.
+                
 
                 return true; // Interrupt was serviced
             }
@@ -186,13 +188,13 @@ impl<M: MemoryBus> Cpu<M> {
         false // No interrupt was serviced
     }
 
-    fn call_interrupt_handler(&mut self, flag: InterruptFlag) -> u8 {
+    fn call_interrupt_handler(&mut self, flag: InterruptFlag) {
         match flag {
-            InterruptFlag::VBlank => self.direct_call(0x40),
-            InterruptFlag::LCD    => self.direct_call(0x48),
-            InterruptFlag::Timer  => self.direct_call(0x50),
-            InterruptFlag::Serial => self.direct_call(0x58),
-            InterruptFlag::Joypad => self.direct_call(0x60),
+            InterruptFlag::VBlank => { self.direct_call(0x40); },
+            InterruptFlag::LCD    => { self.direct_call(0x48); },
+            InterruptFlag::Timer  => { self.direct_call(0x50); },
+            InterruptFlag::Serial => { self.direct_call(0x58); },
+            InterruptFlag::Joypad => { self.direct_call(0x60); },
         }
     }
 
@@ -474,7 +476,7 @@ impl<M: MemoryBus> Cpu<M> {
             0xCC => self.conditional_call(self.reg.get_flag(CpuFlag::Z), cst),
             0xD4 => self.conditional_call(!self.reg.get_flag(CpuFlag::C), cst),
             0xDC => self.conditional_call(self.reg.get_flag(CpuFlag::C), cst),
-            0xCD => self.direct_call(cst),
+            0xCD => { self.direct_call(cst); 6 }, // CALL nn takes 6 M-cycles
             _ => panic!("Not a CALL indstruction: 0x{:02X}", opcode),
         }
     }
@@ -507,10 +509,11 @@ impl<M: MemoryBus> Cpu<M> {
 
     fn ret(&mut self, opcode: u8) -> u8 {
         match opcode {
-            0xC9 => self.conditional_ret(true),
+            0xC9 => { self.conditional_ret(true); 4 }, // Direct RET takes only 4 M-cycles
             0xD9 => {
                 self.ime = true;
-                self.conditional_ret(true)
+                self.conditional_ret(true); 
+                4 // RETI also takes only 4 M-cycles
             },
             0xC0 => self.conditional_ret_initial_tick(!self.reg.get_flag(CpuFlag::Z)),
             0xC8 => self.conditional_ret_initial_tick(self.reg.get_flag(CpuFlag::Z)),

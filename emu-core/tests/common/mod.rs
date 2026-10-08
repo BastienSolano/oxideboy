@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap};
+use std::{cell::{Cell, RefCell}, collections::HashMap};
 use emu_core::memory::MemoryBus;
 use serde::{Serialize, Deserialize};
 
@@ -20,6 +20,7 @@ pub enum MemoryCycle {
 pub struct MockMemory {
     data: HashMap<u16, u8>, // for unit tests, only stores relevant (addr, value)
     cycles: RefCell<Vec<MemoryCycle>>, // for integration tests, stores all memory accesses
+    ticked: Cell<u32>, // total M-cycles reported by the CPU through tick()
 }
 
 impl MockMemory {
@@ -37,6 +38,11 @@ impl MockMemory {
 
     pub fn clear_cycles(&self) {
         self.cycles.borrow_mut().clear();
+        self.ticked.set(0);
+    }
+
+    pub fn get_ticked(&self) -> u32 {
+        self.ticked.get()
     }
 }
 
@@ -45,6 +51,7 @@ impl Default for MockMemory {
         Self {
             data: HashMap::new(),
             cycles: RefCell::new(Vec::new()),
+            ticked: Cell::new(0),
         }
     }
 }
@@ -87,8 +94,7 @@ impl MemoryBus for MockMemory {
     }
 
     fn tick(&mut self, num_cycles: u8) {
-        // TODO: Clean this up if it's not needed
-        // memory cicles are already recorded in read/write methods and tick_internal
+        self.ticked.set(self.ticked.get() + num_cycles as u32);
     }
 
     fn tick_internal(&mut self) {

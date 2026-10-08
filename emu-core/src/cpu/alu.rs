@@ -535,7 +535,7 @@ pub fn rla<M: MemoryBus>(cpu: &mut Cpu<M>) -> u8 {
     cpu.reg.set_flag(CpuFlag::C, cpu.reg.a & 0x80 > 0); // C flag <- bit 7 of A
     cpu.reg.a = cpu.reg.a << 1;
     cpu.reg.a = ( cpu.reg.a & 0xFE ) | carry;
-    2
+    1
 }
 
 pub fn rra<M: MemoryBus>(cpu: &mut Cpu<M>) -> u8 {
@@ -544,7 +544,7 @@ pub fn rra<M: MemoryBus>(cpu: &mut Cpu<M>) -> u8 {
     cpu.reg.set_flag(CpuFlag::C, cpu.reg.a & 1 > 0); // C flag <- bit 7 of A
     cpu.reg.a = cpu.reg.a >> 1;
     cpu.reg.a = ( cpu.reg.a & 0x7F ) | ( carry << 7 );
-    2
+    1
 }
 
 pub fn rlca<M: MemoryBus>(cpu: &mut Cpu<M>) -> u8 {
@@ -553,7 +553,7 @@ pub fn rlca<M: MemoryBus>(cpu: &mut Cpu<M>) -> u8 {
     cpu.reg.a = cpu.reg.a << 1;
     cpu.reg.a = ( cpu.reg.a & 0xFE ) | bit7;
     cpu.reg.set_flag(CpuFlag::C, bit7 == 1);
-    2
+    1
 }
 
 pub fn rrca<M: MemoryBus>(cpu: &mut Cpu<M>) -> u8 {
@@ -562,7 +562,7 @@ pub fn rrca<M: MemoryBus>(cpu: &mut Cpu<M>) -> u8 {
     cpu.reg.a = cpu.reg.a >> 1;
     cpu.reg.a = ( cpu.reg.a & 0x7F ) | ( bit0 << 7 );
     cpu.reg.set_flag(CpuFlag::C, bit0 == 1);
-    2
+    1
 }
 
 macro_rules! rlc_reg8 {
@@ -1031,7 +1031,7 @@ macro_rules! res_hl {
 
         $cpu.mmu.write_byte($cpu.reg.hl(), val);
 
-        3
+        4
     }};
 }
 
@@ -1129,7 +1129,7 @@ macro_rules! set_hl {
 
         $cpu.mmu.write_byte($cpu.reg.hl(), val);
 
-        3
+        4
     }};
 }
 
