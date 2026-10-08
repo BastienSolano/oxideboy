@@ -51,6 +51,10 @@ impl Default for MockMemory {
 
 impl MemoryBus for MockMemory {
     fn read_byte(&self, addr: u16) -> u8 {
+        // IE/IF polling by the interrupt logic is not a bus cycle in the JSON tests
+        if (addr == 0xFFFF || addr == 0xFF0F) && !self.data.contains_key(&addr) {
+            return 0;
+        }
         let val = *self.data.get(&addr).expect(&format!("Address 0x{:04X} not found in MockMemory", addr));
         self.cycles.borrow_mut().push(MemoryCycle::BusActivity(addr, val, MemoryCycleType::Read));
         val

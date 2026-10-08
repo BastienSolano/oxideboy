@@ -186,6 +186,9 @@ impl<M: MemoryBus> Cpu<M> {
                 // unset IME to disable other interrupts in the meantime
                 self.ime = false; // TODO: shoud we handle nested interrupts?
 
+                // Undo the prefetch so the pushed return address is the not-yet-executed instruction
+                self.reg.pc = self.reg.pc.wrapping_sub(1);
+
                 // Call the associated interrupt handler (this pushes PC and jumps)
                 let cycles = self.call_interrupt_handler(flag);
                 self.mmu.tick(cycles);
@@ -500,14 +503,13 @@ impl<M: MemoryBus> Cpu<M> {
     fn direct_call(&mut self, addr: u16) -> u8 {
         //TODO: rewrite using macro from stack.rs
         // PUSH PC
-        let current_instr_addr = self.reg.pc - 1; // -1 because PC points to next instruction
         self.mmu.tick_internal();
         self.reg.sp = self.reg.sp.wrapping_sub(1);
-        let high_addr = ((current_instr_addr & 0xFF00) >> 8) as u8;
+        let high_addr = ((self.reg.pc & 0xFF00) >> 8) as u8;
         self.mmu.write_byte(self.reg.sp, high_addr);
 
         self.reg.sp = self.reg.sp.wrapping_sub(1);
-        let low_addr = (current_instr_addr & 0x00FF) as u8;
+        let low_addr = (self.reg.pc & 0x00FF) as u8;
         self.mmu.write_byte(self.reg.sp, low_addr);
 
         // PC = ADDR
@@ -541,8 +543,6 @@ impl<M: MemoryBus> Cpu<M> {
 
             self.mmu.tick_internal();
             self.reg.pc = (high << 8) | low;
-
-            self.prefetched = self.read_byte(); // Pre-fetch next instruction and increment PC
 
             return 5;
         }
