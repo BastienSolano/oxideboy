@@ -97,6 +97,9 @@ impl<M: MemoryBus> Cpu<M> {
 
     pub fn tick(&mut self) {
         if self.halted {
+            // Tick anyway
+            self.mmu.tick(1);
+
             // Check if there are any pending interrupts to wake from HALT
             let interrupt_enabled = self.mmu.read_byte(0xFFFF);
             let interrupt_flags = self.mmu.read_byte(0xFF0F);
