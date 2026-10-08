@@ -13,7 +13,6 @@ pub struct Cpu<M: MemoryBus> {
     halted: bool,
     ime: bool,
     setei: u32,
-    setdi: u32,
     pub prefetched: u8,
     pub mmu: M,
 }
@@ -49,7 +48,6 @@ impl<M: MemoryBus> Cpu<M> {
             halted: false,
             ime: false, // true if interrupts are enabled
             setei: 0,   // same
-            setdi: 0,   // same
             prefetched: 0,
             mmu,
         }
@@ -77,7 +75,7 @@ impl<M: MemoryBus> Cpu<M> {
     }
 
     pub fn doctor_log_state(&self) -> String {
-        format!(
+        return format!(
             "A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}",
             self.reg.a,
             self.reg.f,
@@ -94,7 +92,7 @@ impl<M: MemoryBus> Cpu<M> {
             self.mmu.read_byte(self.reg.pc),
             self.mmu.read_byte(self.reg.pc+1),
             self.mmu.read_byte(self.reg.pc+2),
-        )
+        );
     }
 
     pub fn tick(&mut self) {
@@ -136,7 +134,7 @@ impl<M: MemoryBus> Cpu<M> {
     }
 
     fn update_ime(&mut self) {
-        // when updating ime (via "set di" or "set ei"), the effect is delayed by one instruction
+        // when updating ime or "set ei", the effect is delayed by one instruction
         // (see: https://gbdev.io/pandocs/Interrupts.html)
         // Counter of 1 means: IME will be updated after next instruction
         // Counter of 0 means: no pending IME update
@@ -145,13 +143,6 @@ impl<M: MemoryBus> Cpu<M> {
                 self.ime = true;
             }
             self.setei -= 1;
-        }
-
-        if self.setdi > 0 {
-            if self.setdi == 1 {
-                self.ime = false;
-            }
-            self.setdi -= 1;
         }
     }
 
@@ -476,7 +467,8 @@ impl<M: MemoryBus> Cpu<M> {
     }
 
     fn set_di(&mut self) -> u8 {
-        self.setdi = 2;  // Disable interrupts after next instruction
+        self.ime = false; // DI disable interrupts directly
+        self.setei = 0;  // Disables the effect of a EI last instruction, important for the EI; DI sequence
         1
     }
 
