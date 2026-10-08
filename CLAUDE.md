@@ -38,7 +38,6 @@ The CPU struct represents the Sharp LR35902 processor:
 - `halted: bool` - CPU halt state
 - `ime: bool` - Interrupt Master Enable flag
 - `setei: u32` - EI instruction delay counter
-- `setdi: u32` - DI instruction delay counter
 - `prefetched: u8` - Prefetched instruction byte for pipelining
 - `mmu: M` - Memory Management Unit (generic over MemoryBus trait)
 
