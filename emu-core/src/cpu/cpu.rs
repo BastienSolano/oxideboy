@@ -124,15 +124,7 @@ impl<M: MemoryBus> Cpu<M> {
             // An interrupt was serviced, PC now points to interrupt vector
             // Fetch the first instruction of the handler
             self.prefetched = self.read_byte();
-
-            // Execute it immediately (interrupt + first instruction happen in same tick)
-            let cycles = self.execute();
-            self.mmu.tick(cycles);
-
-            // Prefetch the next instruction
-            self.prefetched = self.read_byte();
-
-            // Note: update_ime was already called above, so IME delay is handled
+            return;
         }
     }
 
